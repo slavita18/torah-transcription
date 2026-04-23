@@ -1,0 +1,110 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+
+  html,
+  body,
+  #root {
+    direction: rtl;
+    font-family: 'Heebo', 'Frank Ruhl Libre', sans-serif;
+    background-color: #fefdf8;
+    color: #1f2937;
+    margin: 0;
+    padding: 0;
+    min-height: 100vh;
+  }
+
+  #root {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 px-6 py-3 rounded-2xl font-medium text-white transition-all duration-200 shadow-md hover:shadow-lg active:scale-95 focus:outline-none focus:ring-2 focus:ring-offset-2;
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl font-medium border-2 transition-all duration-200 active:scale-95 focus:outline-none focus:ring-2 focus:ring-offset-2;
+  }
+
+  .card {
+    @apply bg-white rounded-2xl shadow-sm border border-cream-200 p-6;
+  }
+
+  .input-field {
+    @apply w-full px-4 py-3 rounded-xl border border-gray-200 bg-white text-gray-800 text-base focus:outline-none focus:ring-2 focus:ring-navy-500 focus:border-transparent transition-all duration-150 placeholder:text-gray-400;
+  }
+
+  .section-title {
+    @apply text-xl font-semibold text-navy-900 mb-4;
+  }
+
+  .progress-bar-track {
+    @apply w-full bg-gray-100 rounded-full overflow-hidden;
+  }
+
+  .progress-bar-fill {
+    @apply h-full bg-navy-500 rounded-full transition-all duration-300;
+  }
+}
+
+/* Audio player range input */
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 6px;
+  border-radius: 3px;
+  background: #e5e7eb;
+  outline: none;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #1e3a8a;
+  cursor: pointer;
+  transition: transform 0.15s;
+}
+
+input[type="range"]::-webkit-slider-thumb:hover {
+  transform: scale(1.2);
+}
+
+input[type="range"]::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #1e3a8a;
+  cursor: pointer;
+  border: none;
+}
+
+/* Highlighted paragraph in player sync */
+.paragraph-highlight {
+  background-color: #e0e9ff;
+  border-right: 3px solid #2563eb;
+  border-radius: 6px;
+  padding: 4px 8px;
+  transition: background-color 0.4s ease;
+}
+
+/* Print styles */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  body {
+    background: white;
+  }
+}
