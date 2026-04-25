@@ -5,10 +5,11 @@ import Navigation from './components/Navigation';
 import HomePage from './pages/HomePage';
 import TranscriptionPage from './pages/TranscriptionPage';
 import LibraryPage from './pages/LibraryPage';
+import PodcastGeneratorPage from './pages/PodcastGeneratorPage';
 
 export default function App() {
   const [apiKey, setApiKey] = useState(getApiKey);
-  const [view, setView] = useState('home'); // 'home' | 'transcription' | 'library'
+  const [view, setView] = useState('home'); // 'home' | 'transcription' | 'library' | 'podcast'
   const [language, setLanguage] = useState('hebrew'); // 'hebrew' | 'yiddish'
 
   function handleLanguageSelect(lang) {
@@ -38,6 +39,10 @@ export default function App() {
 
       {view === 'library' && (
         <LibraryPage />
+      )}
+
+      {view === 'podcast' && (
+        <PodcastGeneratorPage />
       )}
 
       <footer className="text-center py-6 text-xs text-gray-300 border-t border-cream-200 mt-auto">

@@ -22,6 +22,18 @@ export default function Navigation({ view, setView, setApiKey }) {
 
         <div className="flex items-center gap-2">
           <button
+            onClick={() => setView('podcast')}
+            className={`btn-secondary px-4 py-2 text-sm ${
+              view === 'podcast'
+                ? 'bg-indigo-100 border-indigo-300 text-indigo-800'
+                : 'border-gray-200 text-gray-600 hover:border-indigo-200 hover:text-indigo-700'
+            }`}
+          >
+            <span>🎬</span>
+            <span className="hidden sm:inline">פודקאסט מוסרט</span>
+          </button>
+
+          <button
             onClick={() => setView('library')}
             className={`btn-secondary px-4 py-2 text-sm ${
               view === 'library'
