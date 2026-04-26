@@ -1,23 +1,24 @@
 const CLAUDE_MODEL = 'claude-sonnet-4-20250514';
 const CLAUDE_API_URL = 'https://api.anthropic.com/v1/messages';
-const WHISPER_API_URL = 'https://api.openai.com/v1/audio/transcriptions';
+const GROQ_WHISPER_URL = 'https://api.groq.com/openai/v1/audio/transcriptions';
+const GROQ_WHISPER_MODEL = 'whisper-large-v3';
 
-// ── Step 1: OpenAI Whisper ────────────────────────────────────────────────────
+// ── Step 1: Groq Whisper ──────────────────────────────────────────────────────
 
-async function transcribeWithWhisper(audioFile, openAiApiKey) {
+async function transcribeWithWhisper(audioFile, groqApiKey) {
   const formData = new FormData();
   formData.append('file', audioFile);
-  formData.append('model', 'whisper-1');
+  formData.append('model', GROQ_WHISPER_MODEL);
   formData.append('response_format', 'text');
 
-  const response = await fetch(WHISPER_API_URL, {
+  const response = await fetch(GROQ_WHISPER_URL, {
     method: 'POST',
-    headers: { 'Authorization': `Bearer ${openAiApiKey}` },
+    headers: { 'Authorization': `Bearer ${groqApiKey}` },
     body: formData,
   });
 
   if (!response.ok) {
-    let errMsg = `שגיאת Whisper (${response.status})`;
+    let errMsg = `שגיאת Groq (${response.status})`;
     try {
       const errData = await response.json();
       errMsg = errData.error?.message || errMsg;
@@ -26,7 +27,7 @@ async function transcribeWithWhisper(audioFile, openAiApiKey) {
   }
 
   const text = await response.text();
-  if (!text || !text.trim()) throw new Error('Whisper לא החזיר טקסט — ייתכן שהקובץ ריק או לא תקין');
+  if (!text || !text.trim()) throw new Error('Groq לא החזיר טקסט — ייתכן שהקובץ ריק או לא תקין');
   return text.trim();
 }
 
@@ -128,8 +129,8 @@ async function editWithClaude(rawText, type, metadata, language, outputLanguage,
  * @param {string}   language         - 'hebrew' | 'yiddish'
  * @param {string}   outputLanguage   - 'hebrew' | 'yiddish'
  * @param {string}   anthropicApiKey
- * @param {string}   openAiApiKey
- * @param {string|null} cachedRawText - reuse Whisper result from a prior run
+ * @param {string}   groqApiKey
+ * @param {string|null} cachedRawText - reuse Groq result from a prior run
  * @param {Function} onProgress       - called with 'whisper' | 'claude'
  * @returns {{ edited: string, rawText: string }}
  */
@@ -140,18 +141,18 @@ export async function transcribeAudio({
   language,
   outputLanguage,
   anthropicApiKey,
-  openAiApiKey,
+  groqApiKey,
   cachedRawText = null,
   onProgress,
 }) {
   if (!anthropicApiKey) throw new Error('מפתח Anthropic API לא הוגדר');
-  if (!openAiApiKey) throw new Error('מפתח OpenAI API לא הוגדר');
+  if (!groqApiKey) throw new Error('מפתח Groq API לא הוגדר');
 
   let rawText = cachedRawText;
 
   if (!rawText) {
     onProgress?.('whisper');
-    rawText = await transcribeWithWhisper(audioFile, openAiApiKey);
+    rawText = await transcribeWithWhisper(audioFile, groqApiKey);
   }
 
   onProgress?.('claude');

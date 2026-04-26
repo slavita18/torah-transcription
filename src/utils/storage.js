@@ -1,7 +1,7 @@
 const LIBRARY_KEY = 'torah_transcription_library';
 const FOLDERS_KEY = 'torah_transcription_folders';
 const API_KEY_KEY = 'torah_transcription_api_key';
-const OPENAI_KEY_KEY = 'torah_transcription_openai_key';
+const GROQ_KEY_KEY = 'torah_transcription_groq_key';
 
 export function getApiKey() {
   return localStorage.getItem(API_KEY_KEY) || '';
@@ -11,12 +11,12 @@ export function saveApiKey(key) {
   localStorage.setItem(API_KEY_KEY, key);
 }
 
-export function getOpenAiApiKey() {
-  return localStorage.getItem(OPENAI_KEY_KEY) || '';
+export function getGroqApiKey() {
+  return localStorage.getItem(GROQ_KEY_KEY) || '';
 }
 
-export function saveOpenAiApiKey(key) {
-  localStorage.setItem(OPENAI_KEY_KEY, key);
+export function saveGroqApiKey(key) {
+  localStorage.setItem(GROQ_KEY_KEY, key);
 }
 
 export function getFolders() {

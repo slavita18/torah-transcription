@@ -6,7 +6,7 @@ export default function Navigation({ view, setView, onUpdateKeys }) {
   const [ok, setOk] = useState('');
 
   function handleSaveSettings() {
-    onUpdateKeys({ anthropicKey: ak.trim() || null, openAiKey: ok.trim() || null });
+    onUpdateKeys({ anthropicKey: ak.trim() || null, groqKey: ok.trim() || null });
     setShowSettings(false);
     setAk('');
     setOk('');
@@ -67,10 +67,10 @@ export default function Navigation({ view, setView, onUpdateKeys }) {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">מפתח OpenAI (Whisper)</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">מפתח Groq (Whisper)</label>
                 <input
                   type="password"
-                  placeholder="sk-... (השאר ריק לשמור קיים)"
+                  placeholder="gsk_... (השאר ריק לשמור קיים)"
                   value={ok}
                   onChange={e => setOk(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && handleSaveSettings()}

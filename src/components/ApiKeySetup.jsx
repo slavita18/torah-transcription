@@ -1,9 +1,9 @@
 import { useState } from 'react';
-import { saveApiKey, saveOpenAiApiKey } from '../utils/storage';
+import { saveApiKey, saveGroqApiKey } from '../utils/storage';
 
 export default function ApiKeySetup({ onSave }) {
   const [anthropicKey, setAnthropicKey] = useState('');
-  const [openAiKey, setOpenAiKey] = useState('');
+  const [groqKey, setGroqKey] = useState('');
   const [errors, setErrors] = useState({});
 
   function validate() {
@@ -11,8 +11,8 @@ export default function ApiKeySetup({ onSave }) {
     if (!anthropicKey.trim().startsWith('sk-ant-')) {
       errs.anthropic = 'מפתח לא תקין — צריך להתחיל ב-sk-ant-';
     }
-    if (!openAiKey.trim().startsWith('sk-')) {
-      errs.openai = 'מפתח לא תקין — צריך להתחיל ב-sk-';
+    if (!groqKey.trim().startsWith('gsk_')) {
+      errs.groq = 'מפתח לא תקין — צריך להתחיל ב-gsk_';
     }
     return errs;
   }
@@ -24,8 +24,8 @@ export default function ApiKeySetup({ onSave }) {
       return;
     }
     saveApiKey(anthropicKey.trim());
-    saveOpenAiApiKey(openAiKey.trim());
-    onSave({ anthropicKey: anthropicKey.trim(), openAiKey: openAiKey.trim() });
+    saveGroqApiKey(groqKey.trim());
+    onSave({ anthropicKey: anthropicKey.trim(), groqKey: groqKey.trim() });
   }
 
   return (
@@ -34,7 +34,7 @@ export default function ApiKeySetup({ onSave }) {
         <div className="text-5xl mb-4">🔑</div>
         <h2 className="text-2xl font-bold text-navy-900 mb-2">הגדרת מפתחות API</h2>
         <p className="text-gray-500 text-sm mb-8 leading-relaxed">
-          האפליקציה משתמשת בשני שירותים: Whisper לתמלול שמע, Claude לעריכה ועיבוד.
+          האפליקציה משתמשת בשני שירותים: Groq Whisper לתמלול שמע, Claude לעריכה ועיבוד.
         </p>
 
         {/* Anthropic key */}
@@ -60,26 +60,26 @@ export default function ApiKeySetup({ onSave }) {
           </p>
         </div>
 
-        {/* OpenAI key */}
+        {/* Groq key */}
         <div className="text-right mb-8">
           <label className="block text-sm font-semibold text-navy-800 mb-1.5">
-            מפתח OpenAI API
-            <span className="text-gray-400 font-normal mr-1">(לתמלול שמע עם Whisper)</span>
+            מפתח Groq API
+            <span className="text-gray-400 font-normal mr-1">(לתמלול שמע — חינמי, ללא כרטיס אשראי)</span>
           </label>
           <input
             type="password"
-            placeholder="sk-proj-..."
-            value={openAiKey}
-            onChange={e => { setOpenAiKey(e.target.value); setErrors(p => ({ ...p, openai: '' })); }}
+            placeholder="gsk_..."
+            value={groqKey}
+            onChange={e => { setGroqKey(e.target.value); setErrors(p => ({ ...p, groq: '' })); }}
             onKeyDown={e => e.key === 'Enter' && handleSave()}
             className="input-field text-left"
             dir="ltr"
           />
-          {errors.openai && <p className="text-red-500 text-xs mt-1.5">{errors.openai}</p>}
+          {errors.groq && <p className="text-red-500 text-xs mt-1.5">{errors.groq}</p>}
           <p className="text-xs text-gray-400 mt-1">
-            קבל מפתח בכתובת{' '}
-            <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener noreferrer" className="text-navy-500 underline">
-              platform.openai.com/api-keys
+            קבל מפתח חינמי בכתובת{' '}
+            <a href="https://console.groq.com/keys" target="_blank" rel="noopener noreferrer" className="text-navy-500 underline">
+              console.groq.com/keys
             </a>
           </p>
         </div>

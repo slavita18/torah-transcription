@@ -15,11 +15,11 @@ const TYPE_CONFIG = {
 };
 
 const PROGRESS_LABELS = {
-  whisper: { icon: '🎙️', text: 'שלב 1/2 — Whisper ממיר שמע לטקסט...', sub: 'זה עשוי לקחת כ-30–60 שניות בהתאם לאורך ההקלטה' },
+  whisper: { icon: '🎙️', text: 'שלב 1/2 — Groq Whisper ממיר שמע לטקסט...', sub: 'זה עשוי לקחת כ-10–30 שניות בהתאם לאורך ההקלטה' },
   claude:  { icon: '✏️', text: 'שלב 2/2 — Claude עורך ומעצב את הטקסט...', sub: 'עוד רגע ותהיה מוכן' },
 };
 
-export default function TranscriptionPage({ language, anthropicKey, openAiKey }) {
+export default function TranscriptionPage({ language, anthropicKey, groqKey }) {
   const [step, setStep] = useState(STEPS.UPLOAD);
   const [audioFile, setAudioFile] = useState(null);
   const [audioUrl, setAudioUrl] = useState(null);
@@ -54,7 +54,7 @@ export default function TranscriptionPage({ language, anthropicKey, openAiKey })
         language,
         outputLanguage,
         anthropicApiKey: anthropicKey,
-        openAiApiKey: openAiKey,
+        groqApiKey: groqKey,
         cachedRawText,
         onProgress: setProgressStage,
       });
@@ -186,7 +186,7 @@ export default function TranscriptionPage({ language, anthropicKey, openAiKey })
           <div className="card">
             <h2 className="section-title">🚀 סוג התמלול</h2>
             <p className="text-sm text-gray-500 mb-4">
-              ניתן להפיק מספר סוגי תמלול לאותו שיעור — Whisper רץ פעם אחת ומשמש לכולם
+              ניתן להפיק מספר סוגי תמלול לאותו שיעור — Groq רץ פעם אחת ומשמש לכולם
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               {Object.entries(TYPE_CONFIG).map(([type, cfg]) => {
@@ -257,7 +257,7 @@ export default function TranscriptionPage({ language, anthropicKey, openAiKey })
               <h2 className="section-title">➕ הוסף תמלול נוסף</h2>
               {cachedRawText && (
                 <p className="text-xs text-green-700 bg-green-50 border border-green-100 rounded-lg px-3 py-2 mb-3">
-                  ✓ תמלול Whisper כבר זמין — תמלולים נוספים ידלגו על שלב השמע
+                  ✓ תמלול Groq כבר זמין — תמלולים נוספים ידלגו על שלב השמע
                 </p>
               )}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">

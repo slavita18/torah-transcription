@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { getApiKey, getOpenAiApiKey, saveApiKey, saveOpenAiApiKey } from './utils/storage';
+import { getApiKey, getGroqApiKey, saveApiKey, saveGroqApiKey } from './utils/storage';
 import ApiKeySetup from './components/ApiKeySetup';
 import Navigation from './components/Navigation';
 import HomePage from './pages/HomePage';
@@ -8,7 +8,7 @@ import LibraryPage from './pages/LibraryPage';
 
 export default function App() {
   const [anthropicKey, setAnthropicKey] = useState(getApiKey);
-  const [openAiKey, setOpenAiKey] = useState(getOpenAiApiKey);
+  const [groqKey, setGroqKey] = useState(getGroqApiKey);
   const [view, setView] = useState('home');
   const [language, setLanguage] = useState('hebrew');
 
@@ -17,17 +17,17 @@ export default function App() {
     setView('transcription');
   }
 
-  function handleKeysSave({ anthropicKey: ak, openAiKey: ok }) {
+  function handleKeysSave({ anthropicKey: ak, groqKey: gk }) {
     setAnthropicKey(ak);
-    setOpenAiKey(ok);
+    setGroqKey(gk);
   }
 
-  function handleUpdateKeys({ anthropicKey: ak, openAiKey: ok }) {
+  function handleUpdateKeys({ anthropicKey: ak, groqKey: gk }) {
     if (ak) { saveApiKey(ak); setAnthropicKey(ak); }
-    if (ok) { saveOpenAiApiKey(ok); setOpenAiKey(ok); }
+    if (gk) { saveGroqApiKey(gk); setGroqKey(gk); }
   }
 
-  if (!anthropicKey || !openAiKey) {
+  if (!anthropicKey || !groqKey) {
     return <ApiKeySetup onSave={handleKeysSave} />;
   }
 
@@ -44,7 +44,7 @@ export default function App() {
           key={language}
           language={language}
           anthropicKey={anthropicKey}
-          openAiKey={openAiKey}
+          groqKey={groqKey}
         />
       )}
 
@@ -53,7 +53,7 @@ export default function App() {
       )}
 
       <footer className="text-center py-6 text-xs text-gray-300 border-t border-cream-200 mt-auto">
-        תמלול שיעורים תורניים • Whisper + Claude AI
+        תמלול שיעורים תורניים • Groq Whisper + Claude AI
       </footer>
     </div>
   );
