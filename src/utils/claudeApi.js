@@ -1,28 +1,38 @@
 const CLAUDE_MODEL = 'claude-sonnet-4-20250514';
-const API_URL = 'https://api.anthropic.com/v1/messages';
+const CLAUDE_API_URL = 'https://api.anthropic.com/v1/messages';
+const WHISPER_API_URL = 'https://api.openai.com/v1/audio/transcriptions';
 
-function getAudioMimeType(filename) {
-  const ext = filename.toLowerCase().split('.').pop();
-  const map = {
-    mp3: 'audio/mpeg',
-    wav: 'audio/wav',
-    m4a: 'audio/mp4',
-    ogg: 'audio/ogg',
-    webm: 'audio/webm',
-  };
-  return map[ext] || 'audio/mpeg';
-}
+// ── Step 1: OpenAI Whisper ────────────────────────────────────────────────────
 
-async function fileToBase64(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result);
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
+async function transcribeWithWhisper(audioFile, openAiApiKey) {
+  const formData = new FormData();
+  formData.append('file', audioFile);
+  formData.append('model', 'whisper-1');
+  formData.append('response_format', 'text');
+
+  const response = await fetch(WHISPER_API_URL, {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${openAiApiKey}` },
+    body: formData,
   });
+
+  if (!response.ok) {
+    let errMsg = `שגיאת Whisper (${response.status})`;
+    try {
+      const errData = await response.json();
+      errMsg = errData.error?.message || errMsg;
+    } catch {}
+    throw new Error(errMsg);
+  }
+
+  const text = await response.text();
+  if (!text || !text.trim()) throw new Error('Whisper לא החזיר טקסט — ייתכן שהקובץ ריק או לא תקין');
+  return text.trim();
 }
 
-function buildPrompt(type, metadata, language, outputLanguage) {
+// ── Step 2: Claude editing ────────────────────────────────────────────────────
+
+function buildClaudePrompt(type, metadata, language, outputLanguage, rawText) {
   const { maggid, topic, terms } = metadata;
   const isYiddish = language === 'yiddish';
   const outputInYiddish = isYiddish && outputLanguage === 'yiddish';
@@ -30,32 +40,35 @@ function buildPrompt(type, metadata, language, outputLanguage) {
   const langNote = isYiddish
     ? outputInYiddish
       ? 'השיעור הוא באידיש. הפלט יהיה באידיש.'
-      : 'השיעור הוא באידיש. תרגם ותמלל לעברית.'
-    : 'השיעור הוא בעברית. הפלט יהיה בעברית.';
+      : 'השיעור הוא באידיש. תרגם ועבד את הטקסט לעברית.'
+    : 'השיעור בעברית. הפלט יהיה בעברית.';
+
+  const rawSection = `להלן התמלול הגולמי שהופק על ידי מחשב:\n---\n${rawText}\n---\n`;
 
   const prompts = {
-    basic: `אתה מתמלל שיעור תורני.
+    basic: `אתה עורך תמלול שיעור תורני.
 שם המגיד: ${maggid || 'לא צוין'}. נושא: ${topic || 'לא צוין'}. מונחים מיוחדים: ${terms || 'לא צוינו'}.
 ${langNote}
 
+${rawSection}
 הנחיות:
-- אל תעשה תמלול מילה במילה
-- ערוך את השפה כך שתהיה קולחת, מקצועית וברורה
+- ערוך את הטקסט כך שיהיה קולח, מקצועי וברור
 - שמור על רצף הרעיונות והקצב המקורי
 - אל תוסיף תוכן חדש — רק ערוך ושפר
-- הפלט צריך להיות קריא ומסודר, מוכן לקריאה תוך כדי שמיעה
-- אם יש רעשי רקע או קטעים לא ברורים — התעלם מהם בחן והתמקד בדברים המשמעותיים
-- חלק לפסקאות לפי זרימת הרעיונות`,
+- התעלם מרעשי רקע, הפסקות ואמירות אקראיות שאינן חלק מהשיעור
+- חלק לפסקאות לפי זרימת הרעיונות
+- הפלט יהיה קריא ומסודר, מוכן לקריאה תוך כדי שמיעה`,
 
-    extended: `אתה מתמלל שיעור תורני ברמה גבוהה.
+    extended: `אתה עורך תמלול שיעור תורני ברמה גבוהה.
 שם המגיד: ${maggid || 'לא צוין'}. נושא: ${topic || 'לא צוין'}. מונחים מיוחדים: ${terms || 'לא צוינו'}.
 ${langNote}
 
+${rawSection}
 הנחיות:
-- ערוך את השפה בצורה קולחת ומקצועית
-- הוסף כותרות לפי נושאי המשנה של השיעור (סמן כותרות עם **)
-- הוסף מראי מקומות (פסוקים, מקורות) שמוזכרים — סמן אותם בבירור בסוגריים מרובעים
-- זיהוי אוטומטי של פסוקים וציטוטים — עצב אותם כך: "הפסוק במירכאות כפולות"
+- ערוך את הטקסט בצורה קולחת ומקצועית
+- הוסף כותרות לפי נושאי המשנה של השיעור — סמן אותן עם ** בתחילה ובסוף
+- הוסף מראי מקומות (פסוקים, מקורות) שמוזכרים — סמן אותם בסוגריים מרובעים [כך]
+- זיהוי אוטומטי של פסוקים וציטוטים — עצב אותם במרכאות כפולות
 - עריכה קלה בלבד — אל תוסיף תוכן חדש
 - חלק לפסקאות ברורות לפי נושאי המשנה`,
 
@@ -63,29 +76,24 @@ ${langNote}
 שם המגיד: ${maggid || 'לא צוין'}. נושא: ${topic || 'לא צוין'}.
 ${langNote}
 
+${rawSection}
 הנחיות:
 - כתוב סיכום תמציתי וברור של השיעור
 - שמור על עיקרי הרעיונות לפי סדרם
 - אל תוסיף דברים שלא נאמרו
-- הסיכום יהיה קריא ומסודר
 - חלק לנקודות עיקריות עם מספור`,
   };
 
   return prompts[type];
 }
 
-export async function transcribeAudio(audioFile, metadata, transcriptionType, language, outputLanguage, apiKey) {
-  if (!apiKey) throw new Error('מפתח API לא הוגדר');
+async function editWithClaude(rawText, type, metadata, language, outputLanguage, anthropicApiKey) {
+  const prompt = buildClaudePrompt(type, metadata, language, outputLanguage, rawText);
 
-  const prompt = buildPrompt(transcriptionType, metadata, language, outputLanguage);
-  const dataUrl = await fileToBase64(audioFile);
-  const base64Data = dataUrl.split(',')[1];
-  const mimeType = getAudioMimeType(audioFile.name);
-
-  const response = await fetch(API_URL, {
+  const response = await fetch(CLAUDE_API_URL, {
     method: 'POST',
     headers: {
-      'x-api-key': apiKey,
+      'x-api-key': anthropicApiKey,
       'anthropic-version': '2023-06-01',
       'content-type': 'application/json',
       'anthropic-dangerous-direct-browser-access': 'true',
@@ -93,28 +101,12 @@ export async function transcribeAudio(audioFile, metadata, transcriptionType, la
     body: JSON.stringify({
       model: CLAUDE_MODEL,
       max_tokens: 16000,
-      messages: [{
-        role: 'user',
-        content: [
-          {
-            type: 'audio',
-            source: {
-              type: 'base64',
-              media_type: mimeType,
-              data: base64Data,
-            },
-          },
-          {
-            type: 'text',
-            text: prompt,
-          },
-        ],
-      }],
+      messages: [{ role: 'user', content: prompt }],
     }),
   });
 
   if (!response.ok) {
-    let errMsg = `שגיאת API: ${response.status}`;
+    let errMsg = `שגיאת Claude (${response.status})`;
     try {
       const errData = await response.json();
       errMsg = errData.error?.message || errMsg;
@@ -124,4 +116,46 @@ export async function transcribeAudio(audioFile, metadata, transcriptionType, la
 
   const data = await response.json();
   return data.content[0].text;
+}
+
+// ── Public API ────────────────────────────────────────────────────────────────
+
+/**
+ * Full pipeline: Whisper (audio→text) → Claude (text→edited).
+ * @param {File}     audioFile
+ * @param {object}   metadata         - { maggid, topic, terms, ... }
+ * @param {string}   transcriptionType - 'basic' | 'extended' | 'summary'
+ * @param {string}   language         - 'hebrew' | 'yiddish'
+ * @param {string}   outputLanguage   - 'hebrew' | 'yiddish'
+ * @param {string}   anthropicApiKey
+ * @param {string}   openAiApiKey
+ * @param {string|null} cachedRawText - reuse Whisper result from a prior run
+ * @param {Function} onProgress       - called with 'whisper' | 'claude'
+ * @returns {{ edited: string, rawText: string }}
+ */
+export async function transcribeAudio({
+  audioFile,
+  metadata,
+  transcriptionType,
+  language,
+  outputLanguage,
+  anthropicApiKey,
+  openAiApiKey,
+  cachedRawText = null,
+  onProgress,
+}) {
+  if (!anthropicApiKey) throw new Error('מפתח Anthropic API לא הוגדר');
+  if (!openAiApiKey) throw new Error('מפתח OpenAI API לא הוגדר');
+
+  let rawText = cachedRawText;
+
+  if (!rawText) {
+    onProgress?.('whisper');
+    rawText = await transcribeWithWhisper(audioFile, openAiApiKey);
+  }
+
+  onProgress?.('claude');
+  const edited = await editWithClaude(rawText, transcriptionType, metadata, language, outputLanguage, anthropicApiKey);
+
+  return { edited, rawText };
 }

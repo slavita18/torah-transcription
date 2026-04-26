@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { getApiKey } from './utils/storage';
+import { getApiKey, getOpenAiApiKey, saveApiKey, saveOpenAiApiKey } from './utils/storage';
 import ApiKeySetup from './components/ApiKeySetup';
 import Navigation from './components/Navigation';
 import HomePage from './pages/HomePage';
@@ -7,22 +7,33 @@ import TranscriptionPage from './pages/TranscriptionPage';
 import LibraryPage from './pages/LibraryPage';
 
 export default function App() {
-  const [apiKey, setApiKey] = useState(getApiKey);
-  const [view, setView] = useState('home'); // 'home' | 'transcription' | 'library'
-  const [language, setLanguage] = useState('hebrew'); // 'hebrew' | 'yiddish'
+  const [anthropicKey, setAnthropicKey] = useState(getApiKey);
+  const [openAiKey, setOpenAiKey] = useState(getOpenAiApiKey);
+  const [view, setView] = useState('home');
+  const [language, setLanguage] = useState('hebrew');
 
   function handleLanguageSelect(lang) {
     setLanguage(lang);
     setView('transcription');
   }
 
-  if (!apiKey) {
-    return <ApiKeySetup onSave={setApiKey} />;
+  function handleKeysSave({ anthropicKey: ak, openAiKey: ok }) {
+    setAnthropicKey(ak);
+    setOpenAiKey(ok);
+  }
+
+  function handleUpdateKeys({ anthropicKey: ak, openAiKey: ok }) {
+    if (ak) { saveApiKey(ak); setAnthropicKey(ak); }
+    if (ok) { saveOpenAiApiKey(ok); setOpenAiKey(ok); }
+  }
+
+  if (!anthropicKey || !openAiKey) {
+    return <ApiKeySetup onSave={handleKeysSave} />;
   }
 
   return (
     <div className="min-h-screen bg-cream-50 flex flex-col" dir="rtl">
-      <Navigation view={view} setView={setView} setApiKey={setApiKey} />
+      <Navigation view={view} setView={setView} onUpdateKeys={handleUpdateKeys} />
 
       {view === 'home' && (
         <HomePage onSelect={handleLanguageSelect} />
@@ -32,7 +43,8 @@ export default function App() {
         <TranscriptionPage
           key={language}
           language={language}
-          apiKey={apiKey}
+          anthropicKey={anthropicKey}
+          openAiKey={openAiKey}
         />
       )}
 
@@ -41,7 +53,7 @@ export default function App() {
       )}
 
       <footer className="text-center py-6 text-xs text-gray-300 border-t border-cream-200 mt-auto">
-        תמלול שיעורים תורניים • מבוסס על Claude AI
+        תמלול שיעורים תורניים • Whisper + Claude AI
       </footer>
     </div>
   );
