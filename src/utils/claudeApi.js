@@ -5,11 +5,16 @@ const GROQ_WHISPER_MODEL = 'whisper-large-v3';
 
 // ── Step 1: Groq Whisper ──────────────────────────────────────────────────────
 
-async function transcribeWithWhisper(audioFile, groqApiKey) {
+async function transcribeWithWhisper(audioFile, groqApiKey, language) {
   const formData = new FormData();
   formData.append('file', audioFile);
   formData.append('model', GROQ_WHISPER_MODEL);
   formData.append('response_format', 'text');
+
+  if (language === 'yiddish') {
+    formData.append('language', 'yi');
+    formData.append('prompt', 'This is a Torah lesson in Yiddish. The speaker uses religious and Torah terminology in Yiddish and Hebrew.');
+  }
 
   const response = await fetch(GROQ_WHISPER_URL, {
     method: 'POST',
@@ -152,7 +157,7 @@ export async function transcribeAudio({
 
   if (!rawText) {
     onProgress?.('whisper');
-    rawText = await transcribeWithWhisper(audioFile, groqApiKey);
+    rawText = await transcribeWithWhisper(audioFile, groqApiKey, language);
   }
 
   onProgress?.('claude');
