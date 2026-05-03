@@ -108,3 +108,16 @@ input[type="range"]::-moz-range-thumb {
     background: white;
   }
 }
+
+/* Catalog page content */
+.catalog-content p {
+  margin-bottom: 0.75rem;
+  line-height: 1.9;
+}
+.catalog-content strong {
+  font-weight: 700;
+  color: #1e3a8a;
+}
+.catalog-content p:first-child {
+  font-size: 1.05rem;
+}

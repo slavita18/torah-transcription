@@ -5,6 +5,7 @@ import Navigation from './components/Navigation';
 import HomePage from './pages/HomePage';
 import TranscriptionPage from './pages/TranscriptionPage';
 import LibraryPage from './pages/LibraryPage';
+import CatalogPage from './pages/CatalogPage';
 
 export default function App() {
   const [anthropicKey, setAnthropicKey] = useState(getApiKey);
@@ -50,6 +51,10 @@ export default function App() {
 
       {view === 'library' && (
         <LibraryPage />
+      )}
+
+      {view === 'catalog' && (
+        <CatalogPage />
       )}
 
       <footer className="text-center py-6 text-xs text-gray-300 border-t border-cream-200 mt-auto">

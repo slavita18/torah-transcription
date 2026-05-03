@@ -26,6 +26,18 @@ export default function Navigation({ view, setView, onUpdateKeys }) {
 
           <div className="flex items-center gap-2">
             <button
+              onClick={() => setView('catalog')}
+              className={`btn-secondary px-4 py-2 text-sm ${
+                view === 'catalog'
+                  ? 'bg-navy-100 border-navy-300 text-navy-800'
+                  : 'border-gray-200 text-gray-600 hover:border-navy-200 hover:text-navy-700'
+              }`}
+            >
+              <span>📖</span>
+              <span className="hidden sm:inline">קטלוג</span>
+            </button>
+
+            <button
               onClick={() => setView('library')}
               className={`btn-secondary px-4 py-2 text-sm ${
                 view === 'library'
