@@ -1,0 +1,142 @@
+{
+  "name": "Daily Leads -> WhatsApp (Origami + Green API)",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## דוח לידים יומי לווטסאפ\n\n**מה זה עושה:** כל בוקר ב-08:00 (שעון ישראל) מושך את הלידים מאוריגמי, מסנן את אלו שנוצרו ב-24 השעות האחרונות, ושולח סיכום בעברית לווטסאפ דרך Green API.\n\n### הגדרת משתני סביבה (Settings > Variables / .env של n8n)\n\n```\nORIGAMI_API_URL      = כתובת ה-API של אוריגמי שמחזירה לידים\nORIGAMI_API_TOKEN    = טוקן ההרשאה של אוריגמי\nGREENAPI_BASE_URL    = https://api.green-api.com   (ברירת מחדל אם ריק)\nGREENAPI_ID_INSTANCE = ה-idInstance מ-Green API\nGREENAPI_API_TOKEN   = ה-apiTokenInstance מ-Green API\nWHATSAPP_TARGET      = 972XXXXXXXXX@c.us  (המספר האישי שלך עם קידומת 972 בלי 0)\n```\n\n### חשוב\n- צריך לוודא מול תיעוד אוריגמי איך נראית כתובת ה-API ושמות השדות. ה-Code node מנסה כמה שמות שדות נפוצים (name/phone/source/createdAt) באופן גמיש.\n- אם אוריגמי תומך בסינון לפי תאריך בצד השרת, נשלח אליו פרמטר `updated_since` עם ISO של לפני 24 שעות. גם אם לא — ה-Code node מסנן שוב מקומית.\n- אזור הזמן של ה-workflow צריך להיות Asia/Jerusalem (Workflow Settings > Timezone).",
+        "height": 520,
+        "width": 420
+      },
+      "id": "11111111-1111-1111-1111-111111111111",
+      "name": "הוראות התקנה",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [-260, 120]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "days",
+              "triggerAtHour": 8,
+              "triggerAtMinute": 0
+            }
+          ]
+        }
+      },
+      "id": "22222222-2222-2222-2222-222222222222",
+      "name": "כל בוקר ב-08:00",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [240, 320]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $env.ORIGAMI_API_URL }}",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "updated_since",
+              "value": "={{ $now.minus({ hours: 24 }).toISO() }}"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.ORIGAMI_API_TOKEN }}"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "33333333-3333-3333-3333-333333333333",
+      "name": "משיכת לידים מאוריגמי",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [480, 320]
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = $input.first()?.json ?? {};\n\n// אוריגמי עשוי להחזיר את הלידים תחת מפתחות שונים — מנסים כמה אפשרויות\nlet leads = [];\nif (Array.isArray(raw)) leads = raw;\nelse if (Array.isArray(raw.data)) leads = raw.data;\nelse if (Array.isArray(raw.leads)) leads = raw.leads;\nelse if (Array.isArray(raw.results)) leads = raw.results;\nelse if (Array.isArray(raw.items)) leads = raw.items;\nelse leads = $input.all().map(i => i.json);\n\nconst since = $now.minus({ hours: 24 }).toMillis();\n\nconst getDate = (l) => l.createdAt || l.created_at || l.created || l.date || l.insertDate || l.insert_date || l.timestamp || l.dateCreated;\nconst getPhone = (l) => l.phone || l.phoneNumber || l.phone_number || l.tel || l.mobile || l.cellphone || l.cell || '';\nconst getName = (l) => l.name || l.fullName || l.full_name || [l.firstName, l.lastName].filter(Boolean).join(' ').trim() || [l.first_name, l.last_name].filter(Boolean).join(' ').trim() || 'ללא שם';\nconst getSource = (l) => l.source || l.lead_source || l.campaign || l.utm_source || l.utmSource || l.origin || '-';\n\nconst filtered = leads.filter((l) => {\n  const d = getDate(l);\n  if (!d) return true; // אם אין תאריך — לא מסננים החוצה, עדיף לכלול\n  const t = new Date(d).getTime();\n  return Number.isNaN(t) ? true : t >= since;\n});\n\nconst today = $now.setZone('Asia/Jerusalem').toFormat('dd/MM/yyyy');\n\nlet message;\nif (filtered.length === 0) {\n  message = `🟢 דוח לידים יומי\\n📅 ${today}\\n\\nאין לידים חדשים מהיממה האחרונה.`;\n} else {\n  const lines = filtered.map((l, i) => {\n    const d = getDate(l);\n    let time = '';\n    if (d) {\n      const dt = new Date(d);\n      if (!Number.isNaN(dt.getTime())) {\n        time = dt.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Jerusalem' });\n      }\n    }\n    return `${i + 1}. 👤 ${getName(l)}\\n   📞 ${getPhone(l)}\\n   🎯 מקור: ${getSource(l)}${time ? `\\n   🕒 ${time}` : ''}`;\n  });\n  message = `🟢 לידים חדשים מהיממה האחרונה\\n📅 ${today}\\nסה\\\"כ: ${filtered.length} לידים\\n\\n${lines.join('\\n\\n')}`;\n}\n\nreturn [{ json: { message, count: filtered.length } }];"
+      },
+      "id": "44444444-4444-4444-4444-444444444444",
+      "name": "סינון 24 שעות + בניית הודעה",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [720, 320]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ ($env.GREENAPI_BASE_URL || 'https://api.green-api.com') }}/waInstance{{ $env.GREENAPI_ID_INSTANCE }}/sendMessage/{{ $env.GREENAPI_API_TOKEN }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ chatId: $env.WHATSAPP_TARGET, message: $json.message }) }}",
+        "options": {}
+      },
+      "id": "55555555-5555-5555-5555-555555555555",
+      "name": "שליחה לווטסאפ (Green API)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [960, 320]
+    }
+  ],
+  "connections": {
+    "כל בוקר ב-08:00": {
+      "main": [
+        [
+          {
+            "node": "משיכת לידים מאוריגמי",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "משיכת לידים מאוריגמי": {
+      "main": [
+        [
+          {
+            "node": "סינון 24 שעות + בניית הודעה",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "סינון 24 שעות + בניית הודעה": {
+      "main": [
+        [
+          {
+            "node": "שליחה לווטסאפ (Green API)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "timezone": "Asia/Jerusalem",
+    "executionOrder": "v1"
+  },
+  "active": false,
+  "pinData": {},
+  "tags": []
+}
