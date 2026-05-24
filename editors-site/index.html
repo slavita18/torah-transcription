@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>עורכים | סלאוויטא פאבלישינג</title>
+  <meta name="description" content="מאגר עורכים של סלאוויטא פאבלישינג — קורות חיים ודוגמאות עבודה" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800&family=Frank+Ruhl+Libre:wght@400;500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="site-header">
+    <div class="header-inner">
+      <div class="brand">
+        <div class="brand-logo">ס</div>
+        <div class="brand-text">
+          <h1>סלאוויטא פאבלישינג</h1>
+          <p class="brand-sub">מאגר עורכים</p>
+        </div>
+      </div>
+      <div class="header-stats">
+        <div class="stat">
+          <span class="stat-num" id="stat-total">—</span>
+          <span class="stat-label">עורכים</span>
+        </div>
+        <div class="stat">
+          <span class="stat-num" id="stat-active">—</span>
+          <span class="stat-label">פעילים</span>
+        </div>
+        <div class="stat">
+          <span class="stat-num" id="stat-samples">—</span>
+          <span class="stat-label">דוגמאות</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section class="filters">
+      <div class="filters-inner">
+        <div class="search-box">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+          <input type="text" id="search" placeholder="חפש לפי שם, מומחיות, או תיאור..." />
+        </div>
+        <div class="filter-pills" id="filter-pills">
+          <button class="pill active" data-filter="all">הכל</button>
+          <button class="pill" data-filter="active">עורכים פעילים</button>
+          <button class="pill" data-filter="offer">מציעים שירות</button>
+          <button class="pill" data-filter="sample">הגישו דוגמה</button>
+          <button class="pill" data-filter="hassamples">עם דוגמאות מצורפות</button>
+          <button class="pill" data-filter="hascv">עם קו"ח</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="grid-section">
+      <div class="grid" id="editors-grid"></div>
+      <div class="empty-state" id="empty-state" style="display:none">
+        <p>לא נמצאו תוצאות</p>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <p>סלאוויטא פאבלישינג &middot; מאגר פנימי של עורכים &middot; <span id="build-date"></span></p>
+  </footer>
+
+  <!-- Editor detail modal -->
+  <div class="modal" id="modal" aria-hidden="true">
+    <div class="modal-backdrop" data-close></div>
+    <div class="modal-dialog" role="dialog" aria-modal="true">
+      <button class="modal-close" data-close aria-label="סגור">×</button>
+      <div class="modal-body" id="modal-body"></div>
+    </div>
+  </div>
+
+  <script src="editors-data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
