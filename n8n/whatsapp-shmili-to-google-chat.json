@@ -1,0 +1,215 @@
+{
+  "name": "WhatsApp 'שמילי' → Google Chat DM (billing)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "whatsapp-shmili",
+        "options": {}
+      },
+      "id": "11111111-1111-4111-8111-111111111111",
+      "name": "Evolution Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [-880, 320],
+      "webhookId": "whatsapp-shmili"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Normalize the Evolution API 'messages.upsert' payload into a flat object.\n// Works whether the JSON arrives under $json.body (default webhook) or $json.\nconst root = $input.first().json;\nconst payload = root.body ?? root;\nconst data = payload.data ?? {};\nconst key = data.key ?? {};\n\nconst remoteJid = key.remoteJid ?? '';\nconst msg = data.message ?? {};\n\n// Extract the human-readable text from the various WhatsApp message shapes.\nconst text =\n  msg.conversation ??\n  msg.extendedTextMessage?.text ??\n  msg.imageMessage?.caption ??\n  msg.videoMessage?.caption ??\n  msg.documentMessage?.caption ??\n  '';\n\nreturn [\n  {\n    json: {\n      instance: payload.instance ?? '',\n      event: payload.event ?? '',\n      remoteJid,\n      isGroup: remoteJid.endsWith('@g.us'),\n      fromMe: key.fromMe === true,\n      senderName: data.pushName ?? '',\n      participant: key.participant ?? '',\n      text: (text || '').trim(),\n    },\n  },\n];"
+      },
+      "id": "22222222-2222-4222-8222-222222222222",
+      "name": "Parse WhatsApp Message",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-660, 320]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "c1",
+              "leftValue": "={{ $json.isGroup }}",
+              "rightValue": "",
+              "operator": { "type": "boolean", "operation": "true", "singleValue": true }
+            },
+            {
+              "id": "c2",
+              "leftValue": "={{ $json.fromMe }}",
+              "rightValue": "",
+              "operator": { "type": "boolean", "operation": "false", "singleValue": true }
+            },
+            {
+              "id": "c3",
+              "leftValue": "={{ $json.text }}",
+              "rightValue": "",
+              "operator": { "type": "string", "operation": "notEmpty", "singleValue": true }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "33333333-3333-4333-8333-333333333333",
+      "name": "Is incoming group message?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [-440, 320]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $env.EVOLUTION_API_URL }}/group/findGroupInfos/{{ $('Parse WhatsApp Message').item.json.instance }}",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "groupJid",
+              "value": "={{ $('Parse WhatsApp Message').item.json.remoteJid }}"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.EVOLUTION_API_KEY }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "44444444-4444-4444-8444-444444444444",
+      "name": "Get Group Info (Evolution)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [-220, 220]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "g1",
+              "leftValue": "={{ ($json.subject || '').trim() }}",
+              "rightValue": "שמילי",
+              "operator": { "type": "string", "operation": "equals" }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "55555555-5555-4555-8555-555555555555",
+      "name": "Group name is 'שמילי'?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [0, 220]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a1",
+              "name": "messageText",
+              "value": "=📩 *הודעה חדשה מקבוצת \"שמילי\"*\nמאת: {{ $('Parse WhatsApp Message').item.json.senderName || 'לא ידוע' }}\nזמן: {{ $now.toFormat('dd/MM/yyyy HH:mm') }}\n\n{{ $('Parse WhatsApp Message').item.json.text }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "66666666-6666-4666-8666-666666666666",
+      "name": "Build Chat Text",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [220, 220]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://chat.googleapis.com/v1/spaces:setup",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleOAuth2Api",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"space\": { \"spaceType\": \"DIRECT_MESSAGE\" },\n  \"memberships\": [\n    { \"member\": { \"name\": \"users/billing@slavitapublishing.com\", \"type\": \"HUMAN\" } }\n  ]\n}",
+        "options": {}
+      },
+      "id": "77777777-7777-4777-8777-777777777777",
+      "name": "Find/Create DM Space",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [440, 220],
+      "credentials": {
+        "googleOAuth2Api": {
+          "id": "REPLACE_WITH_GOOGLE_OAUTH_CREDENTIAL_ID",
+          "name": "Google Chat (my account)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://chat.googleapis.com/v1/{{ $json.name }}/messages",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleOAuth2Api",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"text\": {{ JSON.stringify($('Build Chat Text').item.json.messageText) }}\n}",
+        "options": {}
+      },
+      "id": "88888888-8888-4888-8888-888888888888",
+      "name": "Send Google Chat DM",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [660, 220],
+      "credentials": {
+        "googleOAuth2Api": {
+          "id": "REPLACE_WITH_GOOGLE_OAUTH_CREDENTIAL_ID",
+          "name": "Google Chat (my account)"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Evolution Webhook": {
+      "main": [[{ "node": "Parse WhatsApp Message", "type": "main", "index": 0 }]]
+    },
+    "Parse WhatsApp Message": {
+      "main": [[{ "node": "Is incoming group message?", "type": "main", "index": 0 }]]
+    },
+    "Is incoming group message?": {
+      "main": [[{ "node": "Get Group Info (Evolution)", "type": "main", "index": 0 }]]
+    },
+    "Get Group Info (Evolution)": {
+      "main": [[{ "node": "Group name is 'שמילי'?", "type": "main", "index": 0 }]]
+    },
+    "Group name is 'שמילי'?": {
+      "main": [[{ "node": "Build Chat Text", "type": "main", "index": 0 }]]
+    },
+    "Build Chat Text": {
+      "main": [[{ "node": "Find/Create DM Space", "type": "main", "index": 0 }]]
+    },
+    "Find/Create DM Space": {
+      "main": [[{ "node": "Send Google Chat DM", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": { "executionOrder": "v1" },
+  "active": false,
+  "pinData": {},
+  "tags": []
+}
