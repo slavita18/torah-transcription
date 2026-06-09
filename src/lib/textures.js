@@ -51,13 +51,13 @@ export function makePageEdgeTexture(baseColor = '#f4ecd8', dir = 'vertical') {
   ctx.fillStyle = baseColor
   ctx.fillRect(0, 0, size, size)
 
-  // קווים דקים המדמים דפים נערמים
-  const lines = 220
+  // קווים דקים ובהירים המדמים דפים נערמים (עדין, לא כהה)
+  const lines = 200
   for (let i = 0; i < lines; i++) {
     const p = (i / lines) * size
-    const shade = 0.12 + Math.random() * 0.18
-    ctx.strokeStyle = `rgba(120, 100, 70, ${shade})`
-    ctx.lineWidth = Math.random() > 0.85 ? 1.2 : 0.5
+    const shade = 0.04 + Math.random() * 0.08
+    ctx.strokeStyle = `rgba(150, 130, 95, ${shade})`
+    ctx.lineWidth = Math.random() > 0.9 ? 1 : 0.5
     ctx.beginPath()
     if (dir === 'vertical') {
       ctx.moveTo(p, 0)
@@ -69,12 +69,12 @@ export function makePageEdgeTexture(baseColor = '#f4ecd8', dir = 'vertical') {
     ctx.stroke()
   }
 
-  // הצללה עדינה בקצוות
+  // נגיעת אור עדינה בקצה (ולא הצללה כהה)
   const grad = ctx.createLinearGradient(0, 0, dir === 'vertical' ? size : 0, dir === 'vertical' ? 0 : size)
-  grad.addColorStop(0, 'rgba(0,0,0,0.18)')
-  grad.addColorStop(0.12, 'rgba(0,0,0,0)')
-  grad.addColorStop(0.88, 'rgba(0,0,0,0)')
-  grad.addColorStop(1, 'rgba(0,0,0,0.18)')
+  grad.addColorStop(0, 'rgba(255,255,255,0.10)')
+  grad.addColorStop(0.1, 'rgba(0,0,0,0)')
+  grad.addColorStop(0.9, 'rgba(0,0,0,0)')
+  grad.addColorStop(1, 'rgba(0,0,0,0.08)')
   ctx.fillStyle = grad
   ctx.fillRect(0, 0, size, size)
 

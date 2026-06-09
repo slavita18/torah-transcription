@@ -122,8 +122,63 @@ function MarksNote() {
   )
 }
 
-export default function ControlPanel({ settings, update, assets, marks = {}, onUploadCover, onUploadBack, onUploadInterior, busy }) {
+function SpreadControls({ settings, update, assets, onUploadSpread, hasSpread, busy }) {
+  const three = settings.spreadParts === 3
+  const pct = (v) => Math.round(v * 100)
+  return (
+    <div className="space-y-3">
+      <Uploader
+        label="פריסת כריכה (קובץ אחד)"
+        hint="אחורי · שדרה · קדמי — תמונה או PDF"
+        onFile={onUploadSpread}
+        busy={busy}
+        thumb={hasSpread ? assets.front : null}
+      />
+      <Field label="מבנה הפריסה">
+        <Pills
+          options={[
+            { id: 2, label: 'קדמי + אחורי' },
+            { id: 3, label: 'קדמי + שדרה + אחורי' },
+          ]}
+          value={settings.spreadParts}
+          onChange={(v) => update({ spreadParts: v })}
+        />
+      </Field>
+      {!three ? (
+        <Field label="נקודת החיתוך (אחורי | קדמי)">
+          <Slider value={pct(settings.spreadCutA)} min={15} max={85} suffix="%" onChange={(v) => update({ spreadCutA: v / 100 })} />
+        </Field>
+      ) : (
+        <>
+          <Field label="גבול אחורי / שדרה">
+            <Slider value={pct(settings.spreadCutA)} min={10} max={70} suffix="%" onChange={(v) => update({ spreadCutA: v / 100 })} />
+          </Field>
+          <Field label="גבול שדרה / קדמי">
+            <Slider value={pct(settings.spreadCutB)} min={30} max={90} suffix="%" onChange={(v) => update({ spreadCutB: v / 100 })} />
+          </Field>
+        </>
+      )}
+      {hasSpread && (
+        <div className="flex items-end justify-center gap-2 rounded-xl bg-cream-50 p-2">
+          {[
+            { url: assets.back, label: 'אחורית' },
+            ...(three ? [{ url: assets.spine, label: 'שדרה' }] : []),
+            { url: assets.front, label: 'קדמית' },
+          ].map((p, i) => (
+            <div key={i} className="text-center">
+              {p.url && <img src={p.url} alt="" className="mx-auto h-14 rounded object-contain shadow ring-1 ring-cream-200" />}
+              <div className="mt-1 text-[10px] text-navy-500">{p.label}</div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+export default function ControlPanel({ settings, update, assets, marks = {}, hasSpread, onUploadCover, onUploadBack, onUploadSpine, onUploadSpread, onUploadInterior, busy }) {
   const isClosed = settings.mode === 'closed'
+  const separate = settings.coverInput !== 'spread'
 
   const setSize = (id) => {
     const p = SIZE_PRESETS.find((s) => s.id === id)
@@ -162,23 +217,53 @@ export default function ControlPanel({ settings, update, assets, marks = {}, onU
       {/* העלאות */}
       {isClosed ? (
         <Section title="קבצי הכריכה" icon="🖼️">
-          <Uploader
-            label="כריכה קדמית"
-            hint="גרור או לחץ · תמונה (JPG/PNG) או PDF"
-            onFile={onUploadCover}
-            busy={busy}
-            thumb={assets.front}
+          <Pills
+            options={[
+              { id: 'separate', label: 'קבצים נפרדים' },
+              { id: 'spread', label: 'פריסה אחת' },
+            ]}
+            value={settings.coverInput}
+            onChange={(v) => update({ coverInput: v })}
           />
-          {marks.front && <MarksNote />}
-          <Uploader
-            label="כריכה אחורית (אופציונלי)"
-            hint="להדמיית הצד האחורי"
-            onFile={onUploadBack}
-            busy={busy}
-            thumb={assets.back}
-          />
-          {marks.back && <MarksNote />}
-          <CropToggle settings={settings} update={update} />
+
+          {separate ? (
+            <>
+              <Uploader
+                label="כריכה קדמית"
+                hint="גרור או לחץ · תמונה (JPG/PNG) או PDF"
+                onFile={onUploadCover}
+                busy={busy}
+                thumb={assets.front}
+              />
+              {marks.front && <MarksNote />}
+              <Uploader
+                label="שדרה (אופציונלי)"
+                hint="תמונת השדרה — תוצג בצד ימין"
+                onFile={onUploadSpine}
+                busy={busy}
+                thumb={assets.spine}
+              />
+              {marks.spine && <MarksNote />}
+              <Uploader
+                label="כריכה אחורית (אופציונלי)"
+                hint="להדמיית הצד האחורי"
+                onFile={onUploadBack}
+                busy={busy}
+                thumb={assets.back}
+              />
+              {marks.back && <MarksNote />}
+              <CropToggle settings={settings} update={update} />
+            </>
+          ) : (
+            <SpreadControls
+              settings={settings}
+              update={update}
+              assets={assets}
+              onUploadSpread={onUploadSpread}
+              hasSpread={hasSpread}
+              busy={busy}
+            />
+          )}
         </Section>
       ) : (
         <Section title="קובץ פנים הספר" icon="📄">

@@ -81,4 +81,9 @@ export const DEFAULT_SETTINGS = {
   spreadIndex: 0,
   // עיבוד קבצים
   autoCrop: true, // זיהוי וחיתוך אוטומטי של סימני חיתוך ושוליים
+  // קלט כריכה
+  coverInput: 'separate', // separate = קבצים נפרדים | spread = פריסה אחת
+  spreadParts: 3, // 2 = קדמי+אחורי | 3 = קדמי+שדרה+אחורי
+  spreadCutA: 0.45, // גבול אחורי/שדרה (יחס)
+  spreadCutB: 0.55, // גבול שדרה/קדמי (יחס)
 }

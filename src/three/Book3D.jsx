@@ -49,7 +49,8 @@ function useCoverMaterials({ frontTex, backTex, spineTex, coverColor, spineColor
 export default function Book3D({ settings, frontUrl, backUrl, spineUrl }) {
   const frontTex = useImageTexture(frontUrl)
   const backTex = useImageTexture(backUrl)
-  const spineTex = useImageTexture(settings.spineUseCover ? null : spineUrl)
+  // אם הועלתה תמונת שדרה — היא קובעת; אחרת נופלים לצבע
+  const spineTex = useImageTexture(spineUrl)
 
   const pageEdge = useMemo(
     () => makePageEdgeTexture(settings.pageColor, 'vertical'),
@@ -115,13 +116,6 @@ export default function Book3D({ settings, frontUrl, backUrl, spineUrl }) {
       <mesh position={[W / 2 - board / 2, 0, 0]} material={mats.spine} castShadow receiveShadow>
         <boxGeometry args={[board, H, T]} />
       </mesh>
-
-      {/* הבלטת קצה הכריכה הקשה בצד הפתיחה (overhang) */}
-      {settings.coverType === 'hard' && (
-        <mesh position={[-W / 2 + board / 2, 0, 0]} material={mats.front[0]}>
-          <boxGeometry args={[board, H, T]} />
-        </mesh>
-      )}
     </group>
   )
 }

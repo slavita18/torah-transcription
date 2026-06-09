@@ -1,9 +1,10 @@
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import Stage from './three/Stage'
 import ControlPanel from './components/ControlPanel'
 import { DEFAULT_SETTINGS } from './lib/presets'
 import { fileToImage, pdfFirstPage, pdfToImages } from './lib/pdf'
 import { autoCropImage } from './lib/cropMarks'
+import { splitCoverSpread } from './lib/imageSplit'
 
 export default function App() {
   const [settings, setSettings] = useState(DEFAULT_SETTINGS)
@@ -12,6 +13,9 @@ export default function App() {
   const [assets, setAssets] = useState({
     frontRaw: null, frontCropped: null, frontMarks: false,
     backRaw: null, backCropped: null, backMarks: false,
+    spineRaw: null, spineCropped: null, spineMarks: false,
+    spreadRaw: null, // פריסת כריכה אחת
+    spreadFront: null, spreadBack: null, spreadSpine: null, // תוצרי הפיצול
     pagesRaw: [], pagesCropped: [], pagesMarks: false,
   })
   const [spreadIndex, setSpreadIndex] = useState(0)
@@ -63,6 +67,53 @@ export default function App() {
     }
   }
 
+  const onUploadSpine = async (file) => {
+    setBusy(true)
+    try {
+      const url = await readAsImage(file)
+      const { dataUrl, cropped, marksDetected } = await autoCropImage(url)
+      setAssets((a) => ({ ...a, spineRaw: url, spineCropped: cropped ? dataUrl : url, spineMarks: marksDetected }))
+    } catch (e) {
+      console.error(e)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const onUploadSpread = async (file) => {
+    setBusy(true)
+    setStatus('מעבד פריסת כריכה…')
+    try {
+      const url = await readAsImage(file)
+      setAssets((a) => ({ ...a, spreadRaw: url }))
+      update({ coverInput: 'spread' })
+    } catch (e) {
+      setStatus('שגיאה בקריאת הקובץ')
+      console.error(e)
+    } finally {
+      setBusy(false)
+      setTimeout(() => setStatus(''), 1200)
+    }
+  }
+
+  // פיצול חי של פריסת הכריכה לפי נקודות החיתוך
+  useEffect(() => {
+    if (settings.coverInput !== 'spread' || !assets.spreadRaw) return
+    let cancelled = false
+    splitCoverSpread(assets.spreadRaw, {
+      parts: settings.spreadParts,
+      cutA: settings.spreadCutA,
+      cutB: settings.spreadCutB,
+    })
+      .then(({ front, back, spine }) => {
+        if (!cancelled) setAssets((a) => ({ ...a, spreadFront: front, spreadBack: back, spreadSpine: spine }))
+      })
+      .catch((e) => console.error(e))
+    return () => {
+      cancelled = true
+    }
+  }, [assets.spreadRaw, settings.coverInput, settings.spreadParts, settings.spreadCutA, settings.spreadCutB])
+
   const onUploadInterior = async (file) => {
     setBusy(true)
     setStatus('מרנדר עמודים…')
@@ -107,11 +158,12 @@ export default function App() {
     })
   }
 
-  // נכסים לתצוגה לפי מצב החיתוך (autoCrop)
+  // נכסים לתצוגה: מצב פריסה משתמש בתוצרי הפיצול; אחרת קבצים נפרדים (גולמי/חתוך)
+  const spread = settings.coverInput === 'spread'
   const view = {
-    front: settings.autoCrop ? assets.frontCropped : assets.frontRaw,
-    back: settings.autoCrop ? assets.backCropped : assets.backRaw,
-    spine: null,
+    front: spread ? assets.spreadFront : settings.autoCrop ? assets.frontCropped : assets.frontRaw,
+    back: spread ? assets.spreadBack : settings.autoCrop ? assets.backCropped : assets.backRaw,
+    spine: spread ? assets.spreadSpine : settings.autoCrop ? assets.spineCropped : assets.spineRaw,
     pages: settings.autoCrop ? assets.pagesCropped : assets.pagesRaw,
   }
 
@@ -150,9 +202,12 @@ export default function App() {
             settings={settings}
             update={update}
             assets={view}
-            marks={{ front: assets.frontMarks, back: assets.backMarks, pages: assets.pagesMarks }}
+            hasSpread={!!assets.spreadRaw}
+            marks={{ front: assets.frontMarks, back: assets.backMarks, spine: assets.spineMarks, pages: assets.pagesMarks }}
             onUploadCover={onUploadCover}
             onUploadBack={onUploadBack}
+            onUploadSpine={onUploadSpine}
+            onUploadSpread={onUploadSpread}
             onUploadInterior={onUploadInterior}
             busy={busy}
           />
@@ -181,7 +236,7 @@ export default function App() {
           )}
 
           {/* ניווט דפדוף — מצב פתוח */}
-          {settings.mode === 'open' && assets.pages.length > 0 && (
+          {settings.mode === 'open' && view.pages.length > 0 && (
             <div className="absolute bottom-6 right-1/2 flex translate-x-1/2 items-center gap-2 rounded-2xl bg-white/95 px-3 py-2 shadow-xl ring-1 ring-cream-200 backdrop-blur">
               {/* RTL: "הבא" מתקדם בתוכן (דף משמאל מתהפך ימינה) */}
               <button
