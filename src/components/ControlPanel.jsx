@@ -95,7 +95,34 @@ function Colors({ value, onChange, palette = COVER_COLORS }) {
 
 /* ---------- הלוח הראשי ---------- */
 
-export default function ControlPanel({ settings, update, assets, onUploadCover, onUploadBack, onUploadInterior, busy }) {
+function CropToggle({ settings, update }) {
+  return (
+    <label className="flex items-start gap-2 rounded-xl bg-cream-50 px-3 py-2 text-xs font-medium text-navy-700">
+      <input
+        type="checkbox"
+        checked={settings.autoCrop}
+        onChange={(e) => update({ autoCrop: e.target.checked })}
+        className="mt-0.5 h-4 w-4 accent-navy-700"
+      />
+      <span>
+        זיהוי וחיתוך אוטומטי של סימני חיתוך
+        <span className="block text-[11px] font-normal text-navy-400">
+          חותך סימני חיתוך, bleed ושוליים לבנים מהקובץ
+        </span>
+      </span>
+    </label>
+  )
+}
+
+function MarksNote() {
+  return (
+    <div className="flex items-center gap-1.5 rounded-lg bg-emerald-50 px-2.5 py-1.5 text-[11px] font-medium text-emerald-700">
+      <span>✂️</span> זוהו סימני חיתוך — נחתכו אוטומטית
+    </div>
+  )
+}
+
+export default function ControlPanel({ settings, update, assets, marks = {}, onUploadCover, onUploadBack, onUploadInterior, busy }) {
   const isClosed = settings.mode === 'closed'
 
   const setSize = (id) => {
@@ -142,6 +169,7 @@ export default function ControlPanel({ settings, update, assets, onUploadCover, 
             busy={busy}
             thumb={assets.front}
           />
+          {marks.front && <MarksNote />}
           <Uploader
             label="כריכה אחורית (אופציונלי)"
             hint="להדמיית הצד האחורי"
@@ -149,6 +177,8 @@ export default function ControlPanel({ settings, update, assets, onUploadCover, 
             busy={busy}
             thumb={assets.back}
           />
+          {marks.back && <MarksNote />}
+          <CropToggle settings={settings} update={update} />
         </Section>
       ) : (
         <Section title="קובץ פנים הספר" icon="📄">
@@ -165,6 +195,8 @@ export default function ControlPanel({ settings, update, assets, onUploadCover, 
               נטענו {assets.pages.length} עמודים
             </div>
           )}
+          {marks.pages && <MarksNote />}
+          <CropToggle settings={settings} update={update} />
         </Section>
       )}
 

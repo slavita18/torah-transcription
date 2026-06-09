@@ -3,10 +3,17 @@ import Stage from './three/Stage'
 import ControlPanel from './components/ControlPanel'
 import { DEFAULT_SETTINGS } from './lib/presets'
 import { fileToImage, pdfFirstPage, pdfToImages } from './lib/pdf'
+import { autoCropImage } from './lib/cropMarks'
 
 export default function App() {
   const [settings, setSettings] = useState(DEFAULT_SETTINGS)
-  const [assets, setAssets] = useState({ front: null, back: null, spine: null, pages: [] })
+  // לכל נכס נשמרות שתי גרסאות: גולמית (raw) וחתוכה (cropped), כדי לאפשר
+  // הפעלה/כיבוי של חיתוך סימני החיתוך ללא העלאה מחדש.
+  const [assets, setAssets] = useState({
+    frontRaw: null, frontCropped: null, frontMarks: false,
+    backRaw: null, backCropped: null, backMarks: false,
+    pagesRaw: [], pagesCropped: [], pagesMarks: false,
+  })
   const [spreadIndex, setSpreadIndex] = useState(0)
   const [flipReq, setFlipReq] = useState({ dir: 0, n: 0 })
   const [busy, setBusy] = useState(false)
@@ -30,13 +37,16 @@ export default function App() {
     setStatus('מעבד כריכה…')
     try {
       const url = await readAsImage(file)
-      setAssets((a) => ({ ...a, front: url }))
+      setStatus('בודק סימני חיתוך…')
+      const { dataUrl, cropped, marksDetected } = await autoCropImage(url)
+      setAssets((a) => ({ ...a, frontRaw: url, frontCropped: cropped ? dataUrl : url, frontMarks: marksDetected }))
+      setStatus(marksDetected ? '✂️ זוהו סימני חיתוך — נחתכו אוטומטית' : '')
     } catch (e) {
       setStatus('שגיאה בקריאת הקובץ')
       console.error(e)
     } finally {
       setBusy(false)
-      setStatus('')
+      setTimeout(() => setStatus(''), 1800)
     }
   }
 
@@ -44,7 +54,8 @@ export default function App() {
     setBusy(true)
     try {
       const url = await readAsImage(file)
-      setAssets((a) => ({ ...a, back: url }))
+      const { dataUrl, cropped, marksDetected } = await autoCropImage(url)
+      setAssets((a) => ({ ...a, backRaw: url, backCropped: cropped ? dataUrl : url, backMarks: marksDetected }))
     } catch (e) {
       console.error(e)
     } finally {
@@ -61,16 +72,26 @@ export default function App() {
         maxPages: 80,
         onProgress: (i, t) => setStatus(`מרנדר עמוד ${i}/${t}…`),
       })
-      setAssets((a) => ({ ...a, pages }))
+      // זיהוי וחיתוך סימני חיתוך לכל עמוד
+      const cropped = []
+      let anyMarks = false
+      for (let i = 0; i < pages.length; i++) {
+        setStatus(`בודק סימני חיתוך ${i + 1}/${pages.length}…`)
+        const res = await autoCropImage(pages[i])
+        cropped.push(res.cropped ? res.dataUrl : pages[i])
+        if (res.marksDetected) anyMarks = true
+      }
+      setAssets((a) => ({ ...a, pagesRaw: pages, pagesCropped: cropped, pagesMarks: anyMarks }))
       setSpreadIndex(0)
       // התאמת מספר עמודים אוטומטית לעובי
       update({ pageCount: Math.max(20, pages.length) })
+      setStatus(anyMarks ? '✂️ זוהו סימני חיתוך — נחתכו אוטומטית' : '')
     } catch (e) {
       setStatus('שגיאה בעיבוד ה-PDF')
       console.error(e)
     } finally {
       setBusy(false)
-      setTimeout(() => setStatus(''), 1200)
+      setTimeout(() => setStatus(''), 1800)
     }
   }
 
@@ -86,8 +107,16 @@ export default function App() {
     })
   }
 
-  const totalSpreads = Math.max(1, Math.ceil(assets.pages.length / 2))
-  const hasContent = settings.mode === 'closed' ? !!assets.front : assets.pages.length > 0
+  // נכסים לתצוגה לפי מצב החיתוך (autoCrop)
+  const view = {
+    front: settings.autoCrop ? assets.frontCropped : assets.frontRaw,
+    back: settings.autoCrop ? assets.backCropped : assets.backRaw,
+    spine: null,
+    pages: settings.autoCrop ? assets.pagesCropped : assets.pagesRaw,
+  }
+
+  const totalSpreads = Math.max(1, Math.ceil(view.pages.length / 2))
+  const hasContent = settings.mode === 'closed' ? !!view.front : view.pages.length > 0
 
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-cream-50">
@@ -120,7 +149,8 @@ export default function App() {
           <ControlPanel
             settings={settings}
             update={update}
-            assets={assets}
+            assets={view}
+            marks={{ front: assets.frontMarks, back: assets.backMarks, pages: assets.pagesMarks }}
             onUploadCover={onUploadCover}
             onUploadBack={onUploadBack}
             onUploadInterior={onUploadInterior}
@@ -133,7 +163,7 @@ export default function App() {
           {hasContent ? (
             <Stage
               settings={settings}
-              assets={assets}
+              assets={view}
               spreadIndex={spreadIndex}
               setSpreadIndex={setSpreadIndex}
               flipReq={flipReq}

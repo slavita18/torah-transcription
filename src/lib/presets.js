@@ -79,4 +79,6 @@ export const DEFAULT_SETTINGS = {
   // ספר פתוח
   openAngle: 92, // מעלות פתיחה
   spreadIndex: 0,
+  // עיבוד קבצים
+  autoCrop: true, // זיהוי וחיתוך אוטומטי של סימני חיתוך ושוליים
 }
