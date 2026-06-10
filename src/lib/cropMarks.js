@@ -49,98 +49,72 @@ function cropToBox(img, W, H, aw, ah, box, quality = 0.92) {
 }
 
 /**
- * מזהה את מסגרת ה-trim מתוך סימני חיתוך.
+ * מזהה את מסגרת ה-trim מתוך סימני חיתוך בפינות.
+ * שיטה: סימן חיתוך אנכי (קו אנכי) מופיע באותו x גם בשוליים העליונים וגם
+ * בתחתונים; אופקי — באותו y משמאל ומימין. הצטלבות זו מבדילה אותם מתוכן.
+ * (סימני החיתוך מרונדרים כאפור, לכן הסף רחב.)
  * @returns {object|null} {x0,y0,x1,y1} בקואורדינטות הניתוח, או null
  */
 function detectTrimBox(data, aw, ah) {
-  const darkAt = (x, y) => {
+  const dark = (x, y) => {
     const i = (y * aw + x) * 4
-    const a = data[i + 3]
     const l = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2]
-    return a > 20 && l < 120 // קו שחור של סימן חיתוך
+    return data[i + 3] > 20 && l < 150
   }
-  const notWhiteAt = (x, y) => {
-    const i = (y * aw + x) * 4
-    return data[i + 3] > 20 && (data[i] < 244 || data[i + 1] < 244 || data[i + 2] < 244)
-  }
+  const bandY = Math.round(0.15 * ah) // רוחב שוליים עליון/תחתון לסריקה
+  const bandX = Math.round(0.15 * aw) // רוחב שוליים שמאל/ימין
+  const minLen = Math.max(8, Math.round(0.012 * Math.min(aw, ah))) // אורך מינימלי לקו סימן
 
-  // גוש התוכן המרכזי (טקסט/אמנות) לפי פרופיל כיסוי
-  const colCov = new Float32Array(aw)
-  const rowCov = new Float32Array(ah)
-  for (let y = 0; y < ah; y++) {
-    for (let x = 0; x < aw; x++) {
-      if (notWhiteAt(x, y)) {
-        colCov[x] += 1
-        rowCov[y] += 1
-      }
-    }
-  }
-  const maxCol = Math.max(...colCov)
-  const maxRow = Math.max(...rowCov)
-  if (maxCol === 0 || maxRow === 0) return null
-  const colBand = longestRun(colCov, maxCol * 0.4)
-  const rowBand = longestRun(rowCov, maxRow * 0.4)
-  const cLeft = colBand.start
-  const cRight = colBand.end
-  const cTop = rowBand.start
-  const cBottom = rowBand.end
-
-  // צריך שוליים אמיתיים סביב התוכן כדי שיהיה מקום לסימנים
-  if (cLeft < 3 && cRight > aw - 4 && cTop < 3 && cBottom > ah - 4) return null
-
-  const minMark = Math.max(5, Math.round(Math.min(aw, ah) * 0.01)) // אורך מינימלי של סימן
-
-  // סימנים אנכיים — בשוליים שמעל/מתחת לתוכן (קובעים trim שמאל/ימין)
-  const vMark = new Int32Array(aw)
+  // סימנים אנכיים — אותו x בשוליים העליונים וגם התחתונים → trim שמאל/ימין
+  const vTop = new Int32Array(aw)
+  const vBot = new Int32Array(aw)
   for (let x = 0; x < aw; x++) {
-    let c = 0
-    for (let y = 0; y < cTop; y++) if (darkAt(x, y)) c++
-    for (let y = cBottom + 1; y < ah; y++) if (darkAt(x, y)) c++
-    vMark[x] = c
+    let t = 0
+    let b = 0
+    for (let y = 0; y < bandY; y++) if (dark(x, y)) t++
+    for (let y = ah - bandY; y < ah; y++) if (dark(x, y)) b++
+    vTop[x] = t
+    vBot[x] = b
   }
-  // סימנים אופקיים — בשוליים מימין/משמאל לתוכן (קובעים trim עליון/תחתון)
-  const hMark = new Int32Array(ah)
+  // סימנים אופקיים — אותו y משמאל וגם מימין → trim עליון/תחתון
+  const hLeft = new Int32Array(ah)
+  const hRight = new Int32Array(ah)
   for (let y = 0; y < ah; y++) {
-    let c = 0
-    for (let x = 0; x < cLeft; x++) if (darkAt(x, y)) c++
-    for (let x = cRight + 1; x < aw; x++) if (darkAt(x, y)) c++
-    hMark[y] = c
+    let l = 0
+    let r = 0
+    for (let x = 0; x < bandX; x++) if (dark(x, y)) l++
+    for (let x = aw - bandX; x < aw; x++) if (dark(x, y)) r++
+    hLeft[y] = l
+    hRight[y] = r
   }
 
-  let trimLeft = -1
-  let trimRight = -1
+  let x0 = -1
+  let x1 = -1
   for (let x = 0; x < aw; x++) {
-    if (vMark[x] >= minMark) {
-      if (trimLeft < 0) trimLeft = x
-      trimRight = x
+    if (vTop[x] >= minLen && vBot[x] >= minLen) {
+      if (x0 < 0) x0 = x
+      x1 = x
     }
   }
-  let trimTop = -1
-  let trimBottom = -1
+  let y0 = -1
+  let y1 = -1
   for (let y = 0; y < ah; y++) {
-    if (hMark[y] >= minMark) {
-      if (trimTop < 0) trimTop = y
-      trimBottom = y
+    if (hLeft[y] >= minLen && hRight[y] >= minLen) {
+      if (y0 < 0) y0 = y
+      y1 = y
     }
   }
 
-  // ולידציה: המסגרת חייבת להקיף את התוכן (הסימנים מחוץ לתוכן), ולהיות בתוך הדף
-  const valid =
-    trimLeft >= 0 && trimRight > trimLeft &&
-    trimTop >= 0 && trimBottom > trimTop &&
-    trimLeft < cLeft && trimRight > cRight &&
-    trimTop < cTop && trimBottom > cBottom &&
-    (trimRight - trimLeft) > aw * 0.3 && (trimBottom - trimTop) > ah * 0.3
-  if (!valid) return null
+  // ולידציה: מסגרת בתוך הדף, ממוקמת בשוליים (לא בקצה ולא במרכז)
+  const ok =
+    x0 >= 2 && x1 > x0 && y0 >= 2 && y1 > y0 &&
+    x0 < aw * 0.25 && x1 > aw * 0.75 &&
+    y0 < ah * 0.25 && y1 > ah * 0.75
+  if (!ok) return null
 
   // חיתוך מעט פנימה מקו הסימן עצמו, כדי שהקו הדק לא יישאר בקצה
-  const inset = Math.max(1, Math.round(Math.min(aw, ah) * 0.004))
-  return {
-    x0: trimLeft + inset,
-    y0: trimTop + inset,
-    x1: trimRight - inset,
-    y1: trimBottom - inset,
-  }
+  const inset = Math.max(1, Math.round(0.004 * Math.min(aw, ah)))
+  return { x0: x0 + inset, y0: y0 + inset, x1: x1 - inset, y1: y1 - inset }
 }
 
 /** זיהוי גוש אמנות כללי (גיבוי כשאין סימני חיתוך) */
@@ -172,7 +146,7 @@ function detectArtworkBox(data, aw, ah) {
  * @returns {Promise<{dataUrl:string, cropped:boolean, marksDetected:boolean}>}
  */
 export async function autoCropImage(dataUrl, opts = {}) {
-  const { analysisMax = 1100, minTrim = 0.01 } = opts
+  const { analysisMax = 1200, minTrim = 0.01 } = opts
   try {
     const img = await loadImage(dataUrl)
     const W = img.naturalWidth
