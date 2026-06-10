@@ -95,12 +95,13 @@ function FlippingLeaf({ active, fromSign, frontUrl, backUrl, W, H, tilt, onHalf,
   const half = useRef(false)
   const f = useImageTexture(frontUrl)
   const bRaw = useImageTexture(backUrl)
-  // הצד האחורי מסתובב 180° עם הדף ולכן מופיע כתמונת-ראי — משקפים עותק שלו חזרה
+  // הצד האחורי מסתובב 180° יחד עם הדף, ולכן התוכן מופיע מסובב 180°.
+  // מסובבים את הטקסטורה ב-180° כדי לבטל זאת — וההדפס מופיע ישר.
   const b = useMemo(() => {
     if (!bRaw) return null
     const c = bRaw.clone()
     c.center.set(0.5, 0.5)
-    c.repeat.x = -1
+    c.rotation = Math.PI
     c.needsUpdate = true
     return c
   }, [bRaw])
