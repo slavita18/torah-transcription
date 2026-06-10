@@ -25,31 +25,36 @@ function crop(img, x, w) {
 }
 
 /**
- * מפצל פריסת כריכה.
+ * מפצל פריסת כריכה. ברירת מחדל RTL: שמאל = קדמית, ימין = אחורית.
  * @param {string} dataUrl תמונת הפריסה
  * @param {object} opts
- * @param {2|3} opts.parts מספר חלקים (2 = קדמי+אחורי, 3 = כולל שדרה)
- * @param {number} opts.cutA חיתוך ראשון (יחס 0..1) — גבול אחורי/שדרה
- * @param {number} opts.cutB חיתוך שני (יחס 0..1) — גבול שדרה/קדמי (רק ל-3 חלקים)
+ * @param {2|3} opts.parts מספר חלקים
+ * @param {number} opts.cutA חיתוך ראשון (יחס 0..1)
+ * @param {number} opts.cutB חיתוך שני (יחס 0..1) — רק ל-3 חלקים
+ * @param {boolean} opts.swap החלפת קדמי/אחורי
  * @returns {Promise<{front:string, back:string, spine:string|null}>}
  */
-export async function splitCoverSpread(dataUrl, { parts = 2, cutA = 0.5, cutB = 0.5 } = {}) {
+export async function splitCoverSpread(dataUrl, { parts = 2, cutA = 0.5, cutB = 0.5, swap = false } = {}) {
   const img = await loadImage(dataUrl)
   const W = img.naturalWidth
 
+  let left
+  let right
+  let spine = null
   if (parts === 3) {
     const a = Math.min(cutA, cutB)
     const b = Math.max(cutA, cutB)
-    return {
-      back: crop(img, 0, a * W),
-      spine: crop(img, a * W, (b - a) * W),
-      front: crop(img, b * W, (1 - b) * W),
-    }
+    left = crop(img, 0, a * W)
+    spine = crop(img, a * W, (b - a) * W)
+    right = crop(img, b * W, (1 - b) * W)
+  } else {
+    left = crop(img, 0, cutA * W)
+    right = crop(img, cutA * W, (1 - cutA) * W)
   }
-  // 2 חלקים — שמאל אחורית, ימין קדמית
-  return {
-    back: crop(img, 0, cutA * W),
-    front: crop(img, cutA * W, (1 - cutA) * W),
-    spine: null,
-  }
+
+  // RTL: ברירת מחדל קדמית=שמאל, אחורית=ימין; swap מחליף
+  return swap
+    ? { front: right, back: left, spine }
+    : { front: left, back: right, spine }
 }
+

@@ -78,12 +78,17 @@ export const DEFAULT_SETTINGS = {
   floatY: 0,
   // ספר פתוח
   openAngle: 92, // מעלות פתיחה
+  openPose: 'flat', // flat = פתוח שטוח | turning = דף באמצע דפדוף
+  turnAngle: 55, // זווית הרמת הדף במצב turning (מעלות)
   spreadIndex: 0,
   // עיבוד קבצים
   autoCrop: true, // זיהוי וחיתוך אוטומטי של סימני חיתוך ושוליים
   // קלט כריכה
   coverInput: 'separate', // separate = קבצים נפרדים | spread = פריסה אחת
   spreadParts: 3, // 2 = קדמי+אחורי | 3 = קדמי+שדרה+אחורי
-  spreadCutA: 0.45, // גבול אחורי/שדרה (יחס)
-  spreadCutB: 0.55, // גבול שדרה/קדמי (יחס)
+  spreadCutA: 0.33, // חיתוך ראשון (יחס)
+  spreadCutB: 0.66, // חיתוך שני (יחס)
+  spreadSwap: false, // החלפת קדמי/אחורי
+  // רקע מותאם (תמונה)
+  bgImage: null,
 }

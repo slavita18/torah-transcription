@@ -1,22 +1,52 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import { useImageTexture } from '../lib/textures'
 import { SCALE, computeThicknessCm } from '../lib/dimensions'
 
-/** דף יחיד שטוח (מישור) הנשען על הכריכה, מוטה לפי זווית הפתיחה */
-function FlatPage({ url, sign, W, H, tilt, color }) {
+/**
+ * חומר לדף. חשוב: יוצרים אותו ב-useMemo התלוי בטקסטורה, כדי שכשהטקסטורה
+ * נטענת (מ-null למפה) ה-shader יתקמפל מחדש ויראה את התוכן (אחרת הדף נשאר לבן).
+ */
+function usePageMaterial(tex, color, side = THREE.DoubleSide) {
+  return useMemo(
+    () =>
+      new THREE.MeshStandardMaterial({
+        map: tex || null,
+        color: tex ? '#ffffff' : color,
+        roughness: 0.9,
+        side,
+      }),
+    [tex, color, side],
+  )
+}
+
+/** דף שטוח הנשען על הכריכה, מוטה לפי זווית הפתיחה */
+function FlatPage({ url, sign, W, H, tilt, color, y = 0.002 }) {
   const tex = useImageTexture(url)
+  const mat = usePageMaterial(tex, color)
   return (
     <group rotation={[0, 0, sign * tilt]}>
-      <mesh position={[(sign * W) / 2, 0.001, 0]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
+      <mesh position={[(sign * W) / 2, y, 0]} rotation={[-Math.PI / 2, 0, 0]} material={mat} receiveShadow>
         <planeGeometry args={[W, H]} />
-        <meshStandardMaterial
-          map={tex || null}
-          color={tex ? '#ffffff' : color}
-          roughness={0.92}
-          side={THREE.DoubleSide}
-        />
+      </mesh>
+    </group>
+  )
+}
+
+/** דף דו-צדדי (לקיפול/דפדוף) — חזית ואחור עם טקסטורות שונות */
+function Leaf({ frontUrl, backUrl, W, H, rotationZ, refObj }) {
+  const f = useImageTexture(frontUrl)
+  const b = useImageTexture(backUrl)
+  const fm = usePageMaterial(f, '#ffffff', THREE.FrontSide)
+  const bm = usePageMaterial(b, '#ffffff', THREE.FrontSide)
+  return (
+    <group ref={refObj} rotation={[0, 0, rotationZ]}>
+      <mesh position={[-W / 2, 0.012, 0]} rotation={[-Math.PI / 2, 0, 0]} material={fm} castShadow>
+        <planeGeometry args={[W, H]} />
+      </mesh>
+      <mesh position={[-W / 2, -0.012, 0]} rotation={[Math.PI / 2, 0, 0]} material={bm}>
+        <planeGeometry args={[W, H]} />
       </mesh>
     </group>
   )
@@ -26,17 +56,11 @@ function FlatPage({ url, sign, W, H, tilt, color }) {
 function SideBlock({ sign, W, H, tilt, stackT, board, overhang, coverColor, pageColor, finish }) {
   return (
     <group rotation={[0, 0, sign * tilt]}>
-      {/* ערימת דפים */}
       <mesh position={[(sign * W) / 2, -stackT / 2, 0]} castShadow receiveShadow>
         <boxGeometry args={[W, stackT, H]} />
         <meshStandardMaterial color={pageColor} roughness={0.95} />
       </mesh>
-      {/* כריכה מתחת (עם overhang קל בצד החיצוני) */}
-      <mesh
-        position={[(sign * (W + overhang)) / 2, -stackT - board / 2, 0]}
-        castShadow
-        receiveShadow
-      >
+      <mesh position={[(sign * (W + overhang)) / 2, -stackT - board / 2, 0]} castShadow receiveShadow>
         <boxGeometry args={[W + overhang, board, H + overhang * 2]} />
         <meshPhysicalMaterial
           color={coverColor}
@@ -48,38 +72,34 @@ function SideBlock({ sign, W, H, tilt, stackT, board, overhang, coverColor, page
   )
 }
 
-/** דף מתהפך — אנימציה סביב ציר השדרה */
-function FlippingPage({ active, fromSign, frontUrl, backUrl, W, H, tilt, onDone }) {
+/** דף מתהפך — אנימציה סביב ציר השדרה (לדפדוף) */
+function FlippingLeaf({ active, fromSign, frontUrl, backUrl, W, H, tilt, onDone }) {
   const ref = useRef()
   const t = useRef(0)
-  const frontTex = useImageTexture(frontUrl)
-  const backTex = useImageTexture(backUrl)
-
+  const f = useImageTexture(frontUrl)
+  const b = useImageTexture(backUrl)
+  const fm = usePageMaterial(f, '#ffffff', THREE.FrontSide)
+  const bm = usePageMaterial(b, '#ffffff', THREE.FrontSide)
   useEffect(() => {
     if (active) t.current = 0
   }, [active])
-
   useFrame((_, delta) => {
     if (!active || !ref.current) return
     t.current = Math.min(1, t.current + delta * 1.6)
     const e = t.current < 0.5 ? 2 * t.current * t.current : 1 - Math.pow(-2 * t.current + 2, 2) / 2
-    // מסתובב מצד fromSign אל הצד הנגדי, מעל לכיפה
     const start = fromSign * tilt
     const end = -fromSign * tilt
     ref.current.rotation.z = start + (end - start) * e
     if (t.current >= 1) onDone?.()
   })
-
   if (!active) return null
   return (
     <group ref={ref}>
-      <mesh position={[(fromSign * W) / 2, 0.01, 0]} rotation={[-Math.PI / 2, 0, 0]} castShadow>
+      <mesh position={[(fromSign * W) / 2, 0.014, 0]} rotation={[-Math.PI / 2, 0, 0]} material={fm} castShadow>
         <planeGeometry args={[W, H]} />
-        <meshStandardMaterial map={frontTex || null} color="#fff" roughness={0.9} side={THREE.FrontSide} />
       </mesh>
-      <mesh position={[(fromSign * W) / 2, -0.01, 0]} rotation={[Math.PI / 2, 0, 0]} castShadow>
+      <mesh position={[(fromSign * W) / 2, -0.014, 0]} rotation={[Math.PI / 2, 0, 0]} material={bm}>
         <planeGeometry args={[W, H]} />
-        <meshStandardMaterial map={backTex || null} color="#fff" roughness={0.9} side={THREE.FrontSide} />
       </mesh>
     </group>
   )
@@ -104,10 +124,13 @@ export default function OpenBook3D({ settings, pages, spreadIndex, setSpreadInde
   // RTL: ימין = אינדקס נמוך
   const rightUrl = pages[idx * 2] || null
   const leftUrl = pages[idx * 2 + 1] || null
+  const nextRight = pages[idx * 2 + 2] || null
+  const nextLeft = pages[idx * 2 + 3] || null
 
-  const [flip, setFlip] = useState(null) // {fromSign, target, front, back}
+  const turning = settings.openPose === 'turning'
+  const turn = ((settings.turnAngle ?? 55) * Math.PI) / 180
 
-  // בקשת דפדוף מבחוץ: flipReq = { dir, n }
+  const [flip, setFlip] = useState(null)
   const lastReq = useRef(0)
   useEffect(() => {
     if (!flipReq || flipReq.n === lastReq.current || flip) return
@@ -115,7 +138,6 @@ export default function OpenBook3D({ settings, pages, spreadIndex, setSpreadInde
     const dir = flipReq.dir
     const next = idx + dir
     if (next < 0 || next > totalSpreads - 1) return
-    // התקדמות (dir=+1): הדף משמאל מתהפך ימינה (RTL)
     const fromSign = dir > 0 ? -1 : 1
     const front = dir > 0 ? leftUrl : rightUrl
     const back = dir > 0 ? pages[next * 2] : pages[next * 2 + 1]
@@ -124,15 +146,27 @@ export default function OpenBook3D({ settings, pages, spreadIndex, setSpreadInde
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [flipReq])
 
+  const common = { W, H, tilt, stackT, board, overhang, coverColor: settings.coverColor, pageColor: settings.pageColor, finish: settings.finish }
+
   return (
     <group position={[0, settings.floatY + stackT + board, 0]}>
-      <SideBlock sign={1} {...{ W, H, tilt, stackT, board, overhang, coverColor: settings.coverColor, pageColor: settings.pageColor, finish: settings.finish }} />
-      <SideBlock sign={-1} {...{ W, H, tilt, stackT, board, overhang, coverColor: settings.coverColor, pageColor: settings.pageColor, finish: settings.finish }} />
+      <SideBlock sign={1} {...common} />
+      <SideBlock sign={-1} {...common} />
 
+      {/* דף ימני (סטטי) */}
       <FlatPage url={rightUrl} sign={1} W={W} H={H} tilt={tilt} color={settings.pageColor} />
-      <FlatPage url={leftUrl} sign={-1} W={W} H={H} tilt={tilt} color={settings.pageColor} />
 
-      <FlippingPage
+      {/* דף שמאלי: במצב "דפדוף" מציגים מתחתיו את העמוד הבא ומעליו עלה מורם */}
+      {turning ? (
+        <>
+          <FlatPage url={nextLeft || leftUrl} sign={-1} W={W} H={H} tilt={tilt} color={settings.pageColor} />
+          {!flip && <Leaf frontUrl={leftUrl} backUrl={nextRight} W={W} H={H} rotationZ={-tilt + turn} />}
+        </>
+      ) : (
+        <FlatPage url={leftUrl} sign={-1} W={W} H={H} tilt={tilt} color={settings.pageColor} />
+      )}
+
+      <FlippingLeaf
         active={!!flip}
         fromSign={flip?.fromSign || -1}
         frontUrl={flip?.front}

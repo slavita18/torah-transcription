@@ -16,6 +16,11 @@ function Background({ settings }) {
     if (settings.bgType === 'transparent') {
       scene.background = null
       gl.setClearColor(0x000000, 0)
+    } else if (settings.bgType === 'image' && settings.bgImage) {
+      gl.setClearColor(0xffffff, 1)
+      tex = new THREE.TextureLoader().load(settings.bgImage)
+      tex.colorSpace = THREE.SRGBColorSpace
+      scene.background = tex
     } else if (settings.bgType === 'solid') {
       gl.setClearColor(0xffffff, 1)
       scene.background = new THREE.Color(settings.bgColor)
@@ -25,7 +30,7 @@ function Background({ settings }) {
       scene.background = tex
     }
     return () => tex?.dispose()
-  }, [scene, gl, settings.bgType, settings.bgColor, settings.bgTop, settings.bgBottom])
+  }, [scene, gl, settings.bgType, settings.bgColor, settings.bgTop, settings.bgBottom, settings.bgImage])
   return null
 }
 

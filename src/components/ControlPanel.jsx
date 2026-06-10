@@ -145,19 +145,28 @@ function SpreadControls({ settings, update, assets, onUploadSpread, hasSpread, b
         />
       </Field>
       {!three ? (
-        <Field label="נקודת החיתוך (אחורי | קדמי)">
+        <Field label="נקודת החיתוך">
           <Slider value={pct(settings.spreadCutA)} min={15} max={85} suffix="%" onChange={(v) => update({ spreadCutA: v / 100 })} />
         </Field>
       ) : (
         <>
-          <Field label="גבול אחורי / שדרה">
+          <Field label="חיתוך ראשון (שמאל)">
             <Slider value={pct(settings.spreadCutA)} min={10} max={70} suffix="%" onChange={(v) => update({ spreadCutA: v / 100 })} />
           </Field>
-          <Field label="גבול שדרה / קדמי">
+          <Field label="חיתוך שני (ימין)">
             <Slider value={pct(settings.spreadCutB)} min={30} max={90} suffix="%" onChange={(v) => update({ spreadCutB: v / 100 })} />
           </Field>
         </>
       )}
+      <label className="flex items-center gap-2 text-xs font-medium text-navy-700">
+        <input
+          type="checkbox"
+          checked={settings.spreadSwap}
+          onChange={(e) => update({ spreadSwap: e.target.checked })}
+          className="h-4 w-4 accent-navy-700"
+        />
+        החלף קדמי / אחורי
+      </label>
       {hasSpread && (
         <div className="flex items-end justify-center gap-2 rounded-xl bg-cream-50 p-2">
           {[
@@ -176,7 +185,7 @@ function SpreadControls({ settings, update, assets, onUploadSpread, hasSpread, b
   )
 }
 
-export default function ControlPanel({ settings, update, assets, marks = {}, hasSpread, onUploadCover, onUploadBack, onUploadSpine, onUploadSpread, onUploadInterior, busy }) {
+export default function ControlPanel({ settings, update, assets, marks = {}, hasSpread, onUploadCover, onUploadBack, onUploadSpine, onUploadSpread, onUploadInterior, onUploadBg, busy }) {
   const isClosed = settings.mode === 'closed'
   const separate = settings.coverInput !== 'spread'
 
@@ -354,15 +363,38 @@ export default function ControlPanel({ settings, update, assets, marks = {}, has
       {/* ספר פתוח */}
       {!isClosed && (
         <Section title="פתיחה ודפדוף" icon="📖">
+          <Field label="סגנון תצוגה">
+            <Pills
+              options={[
+                { id: 'flat', label: 'פתוח שטוח' },
+                { id: 'turning', label: 'דף באמצע דפדוף' },
+              ]}
+              value={settings.openPose}
+              onChange={(v) => update({ openPose: v })}
+            />
+          </Field>
           <Field label="זווית פתיחה">
             <Slider value={settings.openAngle} min={20} max={175} step={1} suffix="°" onChange={(v) => update({ openAngle: v })} />
           </Field>
+          {settings.openPose === 'turning' && (
+            <Field label="זווית הרמת הדף">
+              <Slider value={settings.turnAngle} min={10} max={160} step={1} suffix="°" onChange={(v) => update({ turnAngle: v })} />
+            </Field>
+          )}
         </Section>
       )}
 
       {/* רקע וסגנון */}
       <Section title="רקע וסגנון" icon="🌅">
         <Pills options={BACKGROUND_PRESETS} value={settings.backgroundId} onChange={setBackground} />
+        <Uploader
+          label={settings.bgType === 'image' ? 'תמונת רקע נטענה ✓' : 'העלה תמונת רקע משלך'}
+          hint="JPG/PNG — תוצג כרקע ההדמיה"
+          accept="image/*"
+          onFile={onUploadBg}
+          busy={busy}
+          thumb={settings.bgType === 'image' ? settings.bgImage : null}
+        />
         {settings.bgType === 'gradient' && (
           <div className="grid grid-cols-2 gap-3 pt-1">
             <Field label="עליון">

@@ -104,6 +104,7 @@ export default function App() {
       parts: settings.spreadParts,
       cutA: settings.spreadCutA,
       cutB: settings.spreadCutB,
+      swap: settings.spreadSwap,
     })
       .then(({ front, back, spine }) => {
         if (!cancelled) setAssets((a) => ({ ...a, spreadFront: front, spreadBack: back, spreadSpine: spine }))
@@ -112,7 +113,19 @@ export default function App() {
     return () => {
       cancelled = true
     }
-  }, [assets.spreadRaw, settings.coverInput, settings.spreadParts, settings.spreadCutA, settings.spreadCutB])
+  }, [assets.spreadRaw, settings.coverInput, settings.spreadParts, settings.spreadCutA, settings.spreadCutB, settings.spreadSwap])
+
+  const onUploadBg = async (file) => {
+    setBusy(true)
+    try {
+      const { dataUrl } = await fileToImage(file)
+      update({ bgType: 'image', bgImage: dataUrl, backgroundId: 'custom-image' })
+    } catch (e) {
+      console.error(e)
+    } finally {
+      setBusy(false)
+    }
+  }
 
   const onUploadInterior = async (file) => {
     setBusy(true)
@@ -209,6 +222,7 @@ export default function App() {
             onUploadSpine={onUploadSpine}
             onUploadSpread={onUploadSpread}
             onUploadInterior={onUploadInterior}
+            onUploadBg={onUploadBg}
             busy={busy}
           />
         </aside>
