@@ -27,21 +27,18 @@ function usePageGeometry(W, H, amp) {
   return useMemo(() => makeCurvedPageGeometry(W, H, amp), [W, H, amp])
 }
 
-/** חומר לדף עם הארה-עצמית חזקה כדי שההדפס יֵצא חד וקריא */
+/**
+ * חומר לדף. כשיש תוכן (טקסטורה) משתמשים ב-MeshBasicMaterial לא-מואר עם
+ * toneMapped=false — כך ההדפס מוצג בדיוק כמו המקור (שחור חד על לבן), בלי
+ * ש-PBR או tone-mapping ישטפו את הניגודיות. דף ריק נשאר עם חומר מואר רגיל.
+ */
 function usePageMaterial(tex, color, side = THREE.DoubleSide) {
-  return useMemo(
-    () =>
-      new THREE.MeshStandardMaterial({
-        map: tex || null,
-        color: tex ? '#ffffff' : color,
-        emissive: tex ? '#ffffff' : '#000000',
-        emissiveMap: tex || null,
-        emissiveIntensity: tex ? 0.92 : 0,
-        roughness: 0.8,
-        side,
-      }),
-    [tex, color, side],
-  )
+  return useMemo(() => {
+    if (tex) {
+      return new THREE.MeshBasicMaterial({ map: tex, side, toneMapped: false })
+    }
+    return new THREE.MeshStandardMaterial({ color, roughness: 0.85, side })
+  }, [tex, color, side])
 }
 
 /** דף בודד (נשען), מוטה לפי זווית הפתיחה, עם עקמומיות אופציונלית */

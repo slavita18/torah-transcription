@@ -132,7 +132,7 @@ export default function App() {
     setStatus('מרנדר עמודים…')
     try {
       const { pages } = await pdfToImages(file, {
-        scale: 1.4,
+        scale: 2.2,
         maxPages: 80,
         onProgress: (i, t) => setStatus(`מרנדר עמוד ${i}/${t}…`),
       })
