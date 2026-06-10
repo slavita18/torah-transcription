@@ -106,12 +106,14 @@ function FlippingLeaf({ active, fromSign, frontUrl, backUrl, W, H, tilt, onHalf,
   }, [active])
   useFrame((_, delta) => {
     if (!active || !ref.current) return
-    t.current = Math.min(1, t.current + delta * 1.25)
+    t.current = Math.min(1, t.current + delta * 1.05)
     const e = t.current < 0.5 ? 2 * t.current * t.current : 1 - Math.pow(-2 * t.current + 2, 2) / 2
     // קשת של כ-180° מעל הספר: ממנוחה בצד אחד, דרך מאונך, אל הצד הנגדי
     const start = fromSign * tilt
     const end = fromSign * (Math.PI - tilt)
     ref.current.rotation.z = start + (end - start) * e
+    // הרמה עדינה של הדף מעל הספר בשיא הקשת — תחושת דף שמתרומם
+    ref.current.position.y = Math.sin(Math.PI * e) * W * 0.06
     if (!half.current && t.current >= 0.5) {
       half.current = true
       onHalf?.()
