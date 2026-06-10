@@ -89,16 +89,20 @@ function SideBlock({ sign, W, H, tilt, stackT, board, overhang, coverColor, page
 }
 
 /** דף מתהפך — אנימציית דפדוף בקשת טבעית מעל הספר (דרך מאונך), עם סלסול */
-function FlippingLeaf({ active, fromSign, frontUrl, backUrl, W, H, tilt, onDone }) {
+function FlippingLeaf({ active, fromSign, frontUrl, backUrl, W, H, tilt, onHalf, onDone }) {
   const ref = useRef()
   const t = useRef(0)
+  const half = useRef(false)
   const f = useImageTexture(frontUrl)
   const b = useImageTexture(backUrl)
   const geo = usePageGeometry(W, H, W * 0.06)
   const fm = usePageMaterial(f, '#ffffff', THREE.FrontSide)
   const bm = usePageMaterial(b, '#ffffff', THREE.FrontSide)
   useEffect(() => {
-    if (active) t.current = 0
+    if (active) {
+      t.current = 0
+      half.current = false
+    }
   }, [active])
   useFrame((_, delta) => {
     if (!active || !ref.current) return
@@ -108,6 +112,10 @@ function FlippingLeaf({ active, fromSign, frontUrl, backUrl, W, H, tilt, onDone 
     const start = fromSign * tilt
     const end = fromSign * (Math.PI - tilt)
     ref.current.rotation.z = start + (end - start) * e
+    if (!half.current && t.current >= 0.5) {
+      half.current = true
+      onHalf?.()
+    }
     if (t.current >= 1) onDone?.()
   })
   if (!active) return null
@@ -138,18 +146,13 @@ export default function OpenBook3D({ settings, pages, spreadIndex, setSpreadInde
   const g = (i) => pages[i] || null
   const totalSpreads = Math.max(1, Math.ceil((pages.length + offset) / 2))
   const idx = Math.min(spreadIndex, totalSpreads - 1)
-  const base = idx * 2 - offset
-
-  const rightUrl = g(base)
-  const leftUrl = g(base + 1)
-  const nextRight = g(base + 2)
-  const nextLeft = g(base + 3)
 
   const turning = pose === 'turning'
   const turn = ((settings.turnAngle ?? 55) * Math.PI) / 180
 
   const [flip, setFlip] = useState(null)
   const lastReq = useRef(0)
+
   useEffect(() => {
     if (!flipReq || flipReq.n === lastReq.current || flip) return
     lastReq.current = flipReq.n
@@ -157,16 +160,40 @@ export default function OpenBook3D({ settings, pages, spreadIndex, setSpreadInde
     const next = idx + dir
     if (next < 0 || next > totalSpreads - 1) return
     const fromSign = dir > 0 ? -1 : 1
+    const sbase = idx * 2 - offset
     const nbase = next * 2 - offset
-    const front = dir > 0 ? leftUrl : rightUrl
+    // העלה: חזית = הדף שמתרומם (מהמקור), אחור = הדף שייחשף בצד הנחיתה (היעד)
+    const front = dir > 0 ? g(sbase + 1) : g(sbase)
     const back = dir > 0 ? g(nbase) : g(nbase + 1)
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setFlip({ fromSign, target: next, front, back })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [flipReq])
 
+  // עמודים מוצגים. בזמן דפדוף: צד הנחיתה נשאר על המקור (העלה מכסה אותו עד הסוף),
+  // והצד הנגדי כבר מציג את היעד — נחשף טבעית מתחת לדף המתרומם.
+  const sbase = idx * 2 - offset
+  let rightUrl
+  let leftUrl
+  if (flip) {
+    const nbase = flip.target * 2 - offset
+    if (flip.fromSign < 0) {
+      // התקדמות: הדף השמאלי מתרומם ונוחת מימין
+      rightUrl = g(sbase) // נשאר עד הסוף, מתחלף מתחת לעלה הנוחת
+      leftUrl = g(nbase + 1) // היעד נחשף משמאל
+    } else {
+      // אחורה: הדף הימני מתרומם ונוחת משמאל
+      leftUrl = g(sbase + 1)
+      rightUrl = g(nbase) // היעד נחשף מימין
+    }
+  } else {
+    rightUrl = g(sbase)
+    leftUrl = g(sbase + 1)
+  }
+  const nextLeft = g(sbase + 3)
+  const nextRight = g(sbase + 2)
+
   const common = { W, H, tilt, stackT, board, overhang, coverColor: settings.coverColor, pageColor: settings.pageColor, finish: settings.finish }
-  // "standing" — מטים את כל הספר לעמידה קלה לעבר הצופה
   const rootRot = pose === 'standing' ? [-0.55, 0, 0] : [0, 0, 0]
 
   return (
@@ -177,10 +204,10 @@ export default function OpenBook3D({ settings, pages, spreadIndex, setSpreadInde
 
         <Page url={rightUrl} sign={1} W={W} H={H} tilt={tilt} amp={curveAmp} color={settings.pageColor} />
 
-        {turning ? (
+        {turning && !flip ? (
           <>
             <Page url={nextLeft || leftUrl} sign={-1} W={W} H={H} tilt={tilt} amp={curveAmp} color={settings.pageColor} />
-            {!flip && <Leaf frontUrl={leftUrl} backUrl={nextRight} W={W} H={H} amp={W * 0.12} rotationZ={-tilt + turn} />}
+            <Leaf frontUrl={leftUrl} backUrl={nextRight} W={W} H={H} amp={W * 0.12} rotationZ={-tilt + turn} />
           </>
         ) : (
           <Page url={leftUrl} sign={-1} W={W} H={H} tilt={tilt} amp={curveAmp} color={settings.pageColor} />
