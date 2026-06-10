@@ -94,14 +94,16 @@ function FlippingLeaf({ active, fromSign, frontUrl, backUrl, W, H, tilt, onHalf,
   const t = useRef(0)
   const half = useRef(false)
   const f = useImageTexture(frontUrl)
-  const b = useImageTexture(backUrl)
-  // הצד האחורי מסתובב 180° עם הדף ולכן מופיע כתמונת-ראי — משקפים אותו חזרה
-  useEffect(() => {
-    if (!b) return
-    b.center.set(0.5, 0.5)
-    b.repeat.x = -1
-    b.needsUpdate = true
-  }, [b])
+  const bRaw = useImageTexture(backUrl)
+  // הצד האחורי מסתובב 180° עם הדף ולכן מופיע כתמונת-ראי — משקפים עותק שלו חזרה
+  const b = useMemo(() => {
+    if (!bRaw) return null
+    const c = bRaw.clone()
+    c.center.set(0.5, 0.5)
+    c.repeat.x = -1
+    c.needsUpdate = true
+    return c
+  }, [bRaw])
   const geo = usePageGeometry(W, H, W * 0.06)
   const fm = usePageMaterial(f, '#ffffff', THREE.FrontSide)
   const bm = usePageMaterial(b, '#ffffff', THREE.FrontSide)
