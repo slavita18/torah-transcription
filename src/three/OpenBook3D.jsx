@@ -14,7 +14,11 @@ function usePageMaterial(tex, color, side = THREE.DoubleSide) {
       new THREE.MeshStandardMaterial({
         map: tex || null,
         color: tex ? '#ffffff' : color,
-        roughness: 0.9,
+        // הארה-עצמית מהטקסטורה — שומרת על ההדפס חד וקריא גם בזווית/בתאורה חלשה
+        emissive: tex ? '#ffffff' : '#000000',
+        emissiveMap: tex || null,
+        emissiveIntensity: tex ? 0.55 : 0,
+        roughness: 0.82,
         side,
       }),
     [tex, color, side],
