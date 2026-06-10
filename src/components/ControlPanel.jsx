@@ -366,8 +366,10 @@ export default function ControlPanel({ settings, update, assets, marks = {}, has
           <Field label="סגנון תצוגה">
             <Pills
               options={[
+                { id: 'curved', label: 'פתוח (מעוקל)' },
                 { id: 'flat', label: 'פתוח שטוח' },
-                { id: 'turning', label: 'דף באמצע דפדוף' },
+                { id: 'standing', label: 'עומד' },
+                { id: 'turning', label: 'דף מתהפך' },
               ]}
               value={settings.openPose}
               onChange={(v) => update({ openPose: v })}
@@ -381,6 +383,20 @@ export default function ControlPanel({ settings, update, assets, marks = {}, has
               <Slider value={settings.turnAngle} min={10} max={160} step={1} suffix="°" onChange={(v) => update({ turnAngle: v })} />
             </Field>
           )}
+          <label className="flex items-start gap-2 rounded-xl bg-cream-50 px-3 py-2 text-xs font-medium text-navy-700">
+            <input
+              type="checkbox"
+              checked={settings.startLeft}
+              onChange={(e) => update({ startLeft: e.target.checked })}
+              className="mt-0.5 h-4 w-4 accent-navy-700"
+            />
+            <span>
+              התחל בעמוד שמאלי
+              <span className="block text-[11px] font-normal text-navy-400">
+                מזיז את כל רצף העמודים אחד קדימה
+              </span>
+            </span>
+          </label>
         </Section>
       )}
 

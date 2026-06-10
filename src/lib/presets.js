@@ -6,6 +6,7 @@ export const SIZE_PRESETS = [
   { id: 'a4', label: 'A4 (21×29.7)', width: 21, height: 29.7 },
   { id: 'gemara', label: 'גמרא (ש"ס) (~24×34)', width: 24, height: 34 },
   { id: 'chumash', label: 'חומש (17×24)', width: 17, height: 24 },
+  { id: '6x9', label: '6×9 אינץ׳ (15.2×22.9)', width: 15.24, height: 22.86 },
   { id: 'siddur', label: 'סידור (12×17)', width: 12, height: 17 },
   { id: 'pocket', label: 'כיס (10.5×14.8)', width: 10.5, height: 14.8 },
   { id: 'square', label: 'מרובע (21×21)', width: 21, height: 21 },
@@ -78,8 +79,9 @@ export const DEFAULT_SETTINGS = {
   floatY: 0,
   // ספר פתוח
   openAngle: 92, // מעלות פתיחה
-  openPose: 'flat', // flat = פתוח שטוח | turning = דף באמצע דפדוף
+  openPose: 'curved', // flat | curved | standing | turning
   turnAngle: 55, // זווית הרמת הדף במצב turning (מעלות)
+  startLeft: false, // הזזת כל הרצף עמוד אחד (להתחיל בעמוד שמאלי)
   spreadIndex: 0,
   // עיבוד קבצים
   autoCrop: true, // זיהוי וחיתוך אוטומטי של סימני חיתוך ושוליים
