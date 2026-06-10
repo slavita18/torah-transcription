@@ -242,7 +242,9 @@ export default function App() {
             📚
           </div>
           <div>
-            <h1 className="text-lg font-bold leading-tight text-navy-900">מחולל הדמיות ספרים</h1>
+            <h1 className="text-lg font-bold leading-tight text-navy-900">
+              מחולל הדמיות ספרים <span className="align-middle text-[10px] font-bold text-emerald-600">v7</span>
+            </h1>
             <p className="text-xs text-navy-500">הדמיה תלת-ממדית לספרים עבריים · נפתח מימין לשמאל</p>
           </div>
         </div>
