@@ -22,6 +22,7 @@ export default function App() {
   const [flipReq, setFlipReq] = useState({ dir: 0, n: 0 })
   const [busy, setBusy] = useState(false)
   const [status, setStatus] = useState('')
+  const [recording, setRecording] = useState(false)
   const glRef = useRef(null)
 
   const update = useCallback((patch) => setSettings((s) => ({ ...s, ...patch })), [])
@@ -159,6 +160,55 @@ export default function App() {
     }
   }
 
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
+
+  // הקלטת סרטון של דפדוף אוטומטי דרך כל הספר (WebM)
+  const recordFlipThrough = async () => {
+    const gl = glRef.current
+    if (!gl || recording) return
+    const offset = settings.startLeft ? 1 : 0
+    const total = Math.max(1, Math.ceil((view.pages.length + offset) / 2))
+    setRecording(true)
+    setStatus('🎬 מקליט דפדוף…')
+    try {
+      setSpreadIndex(0)
+      await sleep(500)
+      const canvas = gl.domElement
+      const stream = canvas.captureStream(30)
+      const mime = MediaRecorder.isTypeSupported('video/webm;codecs=vp9')
+        ? 'video/webm;codecs=vp9'
+        : 'video/webm'
+      const rec = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 8_000_000 })
+      const chunks = []
+      rec.ondataavailable = (e) => e.data && e.data.size && chunks.push(e.data)
+      const stopped = new Promise((res) => {
+        rec.onstop = res
+      })
+      rec.start()
+      await sleep(800)
+      for (let i = 0; i < total - 1; i++) {
+        setFlipReq((r) => ({ dir: 1, n: r.n + 1 }))
+        await sleep(1200)
+      }
+      await sleep(900)
+      rec.stop()
+      await stopped
+      const blob = new Blob(chunks, { type: 'video/webm' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `book-flip-${Date.now()}.webm`
+      a.click()
+      URL.revokeObjectURL(url)
+    } catch (e) {
+      console.error(e)
+      setStatus('שגיאה בהקלטה')
+    } finally {
+      setRecording(false)
+      setTimeout(() => setStatus(''), 1500)
+    }
+  }
+
   const exportPng = () => {
     const gl = glRef.current
     if (!gl) return
@@ -269,6 +319,16 @@ export default function App() {
                 className="rounded-xl bg-navy-800 px-3 py-1.5 text-sm font-semibold text-white hover:bg-navy-700 disabled:opacity-30"
               >
                 הבא ←
+              </button>
+              <div className="mx-1 h-6 w-px bg-cream-200" />
+              <button
+                onClick={recordFlipThrough}
+                disabled={recording || totalSpreads < 2}
+                title="הקלטת סרטון דפדוף"
+                className="flex items-center gap-1.5 rounded-xl bg-red-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-40"
+              >
+                <span className={recording ? 'animate-pulse' : ''}>●</span>
+                {recording ? 'מקליט…' : 'הקלט סרטון'}
               </button>
             </div>
           )}

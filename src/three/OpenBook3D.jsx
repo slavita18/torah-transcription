@@ -88,12 +88,13 @@ function SideBlock({ sign, W, H, tilt, stackT, board, overhang, coverColor, page
   )
 }
 
-/** דף מתהפך — אנימציית דפדוף סביב ציר השדרה */
+/** דף מתהפך — אנימציית דפדוף בקשת טבעית מעל הספר (דרך מאונך), עם סלסול */
 function FlippingLeaf({ active, fromSign, frontUrl, backUrl, W, H, tilt, onDone }) {
   const ref = useRef()
   const t = useRef(0)
   const f = useImageTexture(frontUrl)
   const b = useImageTexture(backUrl)
+  const geo = usePageGeometry(W, H, W * 0.06)
   const fm = usePageMaterial(f, '#ffffff', THREE.FrontSide)
   const bm = usePageMaterial(b, '#ffffff', THREE.FrontSide)
   useEffect(() => {
@@ -101,22 +102,19 @@ function FlippingLeaf({ active, fromSign, frontUrl, backUrl, W, H, tilt, onDone 
   }, [active])
   useFrame((_, delta) => {
     if (!active || !ref.current) return
-    t.current = Math.min(1, t.current + delta * 1.5)
+    t.current = Math.min(1, t.current + delta * 1.25)
     const e = t.current < 0.5 ? 2 * t.current * t.current : 1 - Math.pow(-2 * t.current + 2, 2) / 2
+    // קשת של כ-180° מעל הספר: ממנוחה בצד אחד, דרך מאונך, אל הצד הנגדי
     const start = fromSign * tilt
-    const end = -fromSign * tilt
+    const end = fromSign * (Math.PI - tilt)
     ref.current.rotation.z = start + (end - start) * e
     if (t.current >= 1) onDone?.()
   })
   if (!active) return null
   return (
     <group ref={ref}>
-      <mesh position={[(fromSign * W) / 2, 0.014, 0]} rotation={[-Math.PI / 2, 0, 0]} material={fm} castShadow>
-        <planeGeometry args={[W, H]} />
-      </mesh>
-      <mesh position={[(fromSign * W) / 2, -0.014, 0]} rotation={[Math.PI / 2, 0, 0]} material={bm}>
-        <planeGeometry args={[W, H]} />
-      </mesh>
+      <mesh geometry={geo} position={[(fromSign * W) / 2, 0.02, 0]} rotation={[-Math.PI / 2, 0, 0]} material={fm} castShadow />
+      <mesh geometry={geo} position={[(fromSign * W) / 2, -0.02, 0]} rotation={[Math.PI / 2, 0, 0]} material={bm} />
     </group>
   )
 }
