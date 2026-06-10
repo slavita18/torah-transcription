@@ -188,7 +188,7 @@ export default function App() {
       await sleep(800)
       for (let i = 0; i < total - 1; i++) {
         setFlipReq((r) => ({ dir: 1, n: r.n + 1 }))
-        await sleep(1200)
+        await sleep(1700)
       }
       await sleep(900)
       rec.stop()
