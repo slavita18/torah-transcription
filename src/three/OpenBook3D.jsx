@@ -95,6 +95,13 @@ function FlippingLeaf({ active, fromSign, frontUrl, backUrl, W, H, tilt, onHalf,
   const half = useRef(false)
   const f = useImageTexture(frontUrl)
   const b = useImageTexture(backUrl)
+  // הצד האחורי מסתובב 180° עם הדף ולכן מופיע כתמונת-ראי — משקפים אותו חזרה
+  useEffect(() => {
+    if (!b) return
+    b.center.set(0.5, 0.5)
+    b.repeat.x = -1
+    b.needsUpdate = true
+  }, [b])
   const geo = usePageGeometry(W, H, W * 0.06)
   const fm = usePageMaterial(f, '#ffffff', THREE.FrontSide)
   const bm = usePageMaterial(b, '#ffffff', THREE.FrontSide)
