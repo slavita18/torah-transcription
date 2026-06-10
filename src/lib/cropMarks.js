@@ -185,3 +185,54 @@ export async function autoCropImage(dataUrl, opts = {}) {
     return { dataUrl, cropped: false, marksDetected: false }
   }
 }
+
+/**
+ * מזהה את מסגרת ה-trim ומחזיר אותה כיחסים (0..1) של מימדי התמונה — או null.
+ * שימושי לזיהוי קו החיתוך מעמוד אחד והחלתו על כל העמודים.
+ */
+export async function detectTrimFraction(dataUrl, opts = {}) {
+  const { analysisMax = 1200 } = opts
+  try {
+    const img = await loadImage(dataUrl)
+    const W = img.naturalWidth
+    const H = img.naturalHeight
+    if (!W || !H) return null
+    const scale = Math.min(1, analysisMax / Math.max(W, H))
+    const aw = Math.max(1, Math.round(W * scale))
+    const ah = Math.max(1, Math.round(H * scale))
+    const ac = document.createElement('canvas')
+    ac.width = aw
+    ac.height = ah
+    const ctx = ac.getContext('2d', { willReadFrequently: true })
+    ctx.drawImage(img, 0, 0, aw, ah)
+    const { data } = ctx.getImageData(0, 0, aw, ah)
+    const box = detectTrimBox(data, aw, ah)
+    if (!box) return null
+    return { x0: box.x0 / aw, y0: box.y0 / ah, x1: box.x1 / aw, y1: box.y1 / ah }
+  } catch (e) {
+    console.error('detectTrimFraction failed', e)
+    return null
+  }
+}
+
+/** חותך תמונה לפי מלבן יחסי (0..1). */
+export async function cropToFraction(dataUrl, f, quality = 0.9) {
+  try {
+    const img = await loadImage(dataUrl)
+    const W = img.naturalWidth
+    const H = img.naturalHeight
+    const sx = Math.max(0, Math.round(f.x0 * W))
+    const sy = Math.max(0, Math.round(f.y0 * H))
+    const sw = Math.min(W - sx, Math.round((f.x1 - f.x0) * W))
+    const sh = Math.min(H - sy, Math.round((f.y1 - f.y0) * H))
+    if (sw < 8 || sh < 8) return dataUrl
+    const oc = document.createElement('canvas')
+    oc.width = sw
+    oc.height = sh
+    oc.getContext('2d').drawImage(img, sx, sy, sw, sh, 0, 0, sw, sh)
+    return oc.toDataURL('image/jpeg', quality)
+  } catch (e) {
+    console.error('cropToFraction failed', e)
+    return dataUrl
+  }
+}

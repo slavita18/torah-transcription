@@ -3,7 +3,7 @@ import Stage from './three/Stage'
 import ControlPanel from './components/ControlPanel'
 import { DEFAULT_SETTINGS } from './lib/presets'
 import { fileToImage, pdfFirstPage, pdfToImages } from './lib/pdf'
-import { autoCropImage } from './lib/cropMarks'
+import { autoCropImage, detectTrimFraction, cropToFraction } from './lib/cropMarks'
 import { splitCoverSpread } from './lib/imageSplit'
 
 export default function App() {
@@ -137,14 +137,27 @@ export default function App() {
         maxPages: 80,
         onProgress: (i, t) => setStatus(`מרנדר עמוד ${i}/${t}…`),
       })
-      // זיהוי וחיתוך סימני חיתוך לכל עמוד
+      // מזהים את קו החיתוך מעמוד אחד שיש בו סימני חיתוך, ומחילים על כל הספר
+      // (כל העמודים באותו גודל ומיקום trim) — כך אין כשלים פר-עמוד.
+      setStatus('מזהה סימני חיתוך…')
+      let frac = null
+      for (let i = 0; i < pages.length && !frac; i++) {
+        frac = await detectTrimFraction(pages[i])
+      }
       const cropped = []
       let anyMarks = false
-      for (let i = 0; i < pages.length; i++) {
-        setStatus(`בודק סימני חיתוך ${i + 1}/${pages.length}…`)
-        const res = await autoCropImage(pages[i])
-        cropped.push(res.cropped ? res.dataUrl : pages[i])
-        if (res.marksDetected) anyMarks = true
+      if (frac) {
+        anyMarks = true
+        for (let i = 0; i < pages.length; i++) {
+          setStatus(`חותך עמוד ${i + 1}/${pages.length}…`)
+          cropped.push(await cropToFraction(pages[i], frac))
+        }
+      } else {
+        // אין סימני חיתוך — גיבוי: חיתוך גוש אמנות פר-עמוד
+        for (let i = 0; i < pages.length; i++) {
+          const res = await autoCropImage(pages[i])
+          cropped.push(res.cropped ? res.dataUrl : pages[i])
+        }
       }
       setAssets((a) => ({ ...a, pagesRaw: pages, pagesCropped: cropped, pagesMarks: anyMarks }))
       setSpreadIndex(0)
@@ -243,7 +256,7 @@ export default function App() {
           </div>
           <div>
             <h1 className="text-lg font-bold leading-tight text-navy-900">
-              מחולל הדמיות ספרים <span className="align-middle text-[10px] font-bold text-emerald-600">v10</span>
+              מחולל הדמיות ספרים <span className="align-middle text-[10px] font-bold text-emerald-600">v11</span>
             </h1>
             <p className="text-xs text-navy-500">הדמיה תלת-ממדית לספרים עבריים · נפתח מימין לשמאל</p>
           </div>
