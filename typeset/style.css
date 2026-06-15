@@ -1,0 +1,77 @@
+/* ===== Fonts ===== */
+@font-face{font-family:'Body';src:url(fonts/DavidLibre-Regular.ttf);font-weight:400}
+@font-face{font-family:'Body';src:url(fonts/DavidLibre-Medium.ttf);font-weight:500}
+@font-face{font-family:'Body';src:url(fonts/DavidLibre-Bold.ttf);font-weight:700}
+@font-face{font-family:'Display';src:url(fonts/FrankRuhlLibre-Light.ttf);font-weight:300}
+@font-face{font-family:'Display';src:url(fonts/FrankRuhlLibre-Regular.ttf);font-weight:400}
+@font-face{font-family:'Display';src:url(fonts/FrankRuhlLibre-Medium.ttf);font-weight:500}
+@font-face{font-family:'Display';src:url(fonts/FrankRuhlLibre-Bold.ttf);font-weight:700}
+@font-face{font-family:'Display';src:url(fonts/FrankRuhlLibre-Black.ttf);font-weight:900}
+@font-face{font-family:'Titling';src:url(fonts/SuezOne-Regular.ttf);font-weight:400}
+
+/* ===== Page ===== */
+@page{
+  size:473.39pt 668.98pt;
+  margin:58pt 58pt 54pt 58pt;
+  @top-center{
+    content:'אורח חיים \2009 \2666 \2009 ' string(siman);
+    font-family:'Display';font-weight:700;font-size:13pt;color:#231f20;
+    vertical-align:bottom;padding-bottom:10pt;
+  }
+}
+@page:right{ @top-right{
+  content:counter(page,hebrew);
+  font-family:'Display';font-weight:700;font-size:12pt;color:#231f20;
+  vertical-align:bottom;padding-bottom:10pt;
+}}
+@page:left{ @top-left{
+  content:counter(page,hebrew);
+  font-family:'Display';font-weight:700;font-size:12pt;color:#231f20;
+  vertical-align:bottom;padding-bottom:10pt;
+}}
+@page opener{ margin-top:58pt;
+  @top-center{content:none} @top-right{content:none} @top-left{content:none}
+}
+
+html,body{margin:0;padding:0}
+body{direction:rtl;color:#231f20;font-family:'Body';font-weight:400;
+  font-size:12pt;line-height:16.5pt;text-align:justify;
+  -weasy-hyphens:none;}
+
+/* ===== Two-column flow container ===== */
+.flow{columns:2;column-gap:12pt;column-fill:auto;}
+
+/* ===== Opener (title page) ===== */
+.opener{page:opener;break-after:page;text-align:center;padding-top:150pt;
+  counter-reset:page 0;}
+.opener-title{font-family:'Display';font-weight:900;font-size:34pt;
+  letter-spacing:1pt;margin-bottom:18pt;}
+.opener-sub{font-family:'Display';font-weight:500;font-size:14pt;color:#3a3637;
+  line-height:1.5;margin-bottom:40pt;}
+.opener-orn{width:150pt;opacity:.9;margin-top:20pt;}
+
+/* ===== Section header (siman) ===== */
+.simhead{column-span:all;text-align:center;margin:16pt 0 13pt;
+  string-set:siman attr(data-runhead);
+  font-family:'Display';font-weight:700;font-size:17.5pt;color:#231f20;
+  white-space:nowrap;line-height:1;
+  break-after:avoid;break-inside:avoid;}
+.simhead.first{margin-top:2pt;}
+.simhead .simtext{display:inline-block;vertical-align:middle;padding:0 12pt;}
+.simhead .fl{display:inline-block;vertical-align:middle;height:13pt;width:70pt;}
+
+.orphan-div{column-span:all;text-align:center;margin:10pt 0;}
+.orphan-div img{width:42pt;opacity:.85;}
+
+/* ===== Body paragraphs ===== */
+.bp{margin:0;text-indent:0;}
+.bp + .bp{}
+p.bp{orphans:2;widows:2;}
+/* first line of each sub-point gets a little space before */
+.sub{margin-top:3.5pt;}
+.lead{font-family:'Body';font-weight:700;font-size:13.8pt;}
+.src{font-size:8.4pt;}
+
+/* ===== Endpiece ===== */
+.endpiece{column-span:all;text-align:center;margin-top:16pt;}
+.endpiece img{width:60pt;opacity:.9;}
