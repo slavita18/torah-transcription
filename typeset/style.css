@@ -1,13 +1,10 @@
-/* ===== Fonts ===== */
-@font-face{font-family:'Body';src:url(fonts/DavidLibre-Regular.ttf);font-weight:400}
-@font-face{font-family:'Body';src:url(fonts/DavidLibre-Medium.ttf);font-weight:500}
-@font-face{font-family:'Body';src:url(fonts/DavidLibre-Bold.ttf);font-weight:700}
-@font-face{font-family:'Display';src:url(fonts/FrankRuhlLibre-Light.ttf);font-weight:300}
-@font-face{font-family:'Display';src:url(fonts/FrankRuhlLibre-Regular.ttf);font-weight:400}
-@font-face{font-family:'Display';src:url(fonts/FrankRuhlLibre-Medium.ttf);font-weight:500}
-@font-face{font-family:'Display';src:url(fonts/FrankRuhlLibre-Bold.ttf);font-weight:700}
-@font-face{font-family:'Display';src:url(fonts/FrankRuhlLibre-Black.ttf);font-weight:900}
-@font-face{font-family:'Titling';src:url(fonts/SuezOne-Regular.ttf);font-weight:400}
+/* ===== Fonts — reconstructed directly from the reference PDF's embedded subsets,
+   so the body/heading faces are an exact match to the original sefer. ===== */
+@font-face{font-family:'Body';src:url(fonts/Tachkemoni-Light.ttf);font-weight:400}
+@font-face{font-family:'Body';src:url(fonts/Tachkemoni-Bold.ttf);font-weight:700}
+@font-face{font-family:'Display';src:url(fonts/Vilna-Medium.ttf);font-weight:500}
+@font-face{font-family:'Display';src:url(fonts/Vilna-Medium.ttf);font-weight:700}
+@font-face{font-family:'Display';src:url(fonts/Vilna-Bold.ttf);font-weight:900}
 
 /* ===== Page ===== */
 @page{
@@ -34,7 +31,7 @@
 }
 
 html,body{margin:0;padding:0}
-body{direction:rtl;color:#231f20;font-family:'Body';font-weight:400;
+body{direction:rtl;color:#231f20;font-family:'Body','Display',serif;font-weight:400;
   font-size:12pt;line-height:16.5pt;text-align:justify;
   -weasy-hyphens:none;}
 
