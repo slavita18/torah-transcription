@@ -1,0 +1,196 @@
+{
+  "name": "אוריגמי - סיכום דיווחים לא מאושרים/לא שולמו - פרויקט בעל שם טוב",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 8 3 * *"
+            }
+          ]
+        }
+      },
+      "id": "trigger-3rd-of-month",
+      "name": "כל 3 לחודש (08:00)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -480,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "cfg-project",
+              "name": "projectName",
+              "value": "בעל שם טוב",
+              "type": "string"
+            },
+            {
+              "id": "cfg-recipient",
+              "name": "recipientEmail",
+              "value": "PUT-MENACHEM-EMAIL-HERE@example.com",
+              "type": "string"
+            },
+            {
+              "id": "cfg-recipient-name",
+              "name": "recipientName",
+              "value": "מנחם ברקוביץ",
+              "type": "string"
+            },
+            {
+              "id": "cfg-origami-base",
+              "name": "origamiBaseUrl",
+              "value": "https://api.origami.co.il",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "config-node",
+      "name": "הגדרות",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -260,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $json.origamiBaseUrl }}/v1/reports",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "project",
+              "value": "={{ $json.projectName }}"
+            },
+            {
+              "name": "per_page",
+              "value": "500"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "origami-fetch",
+      "name": "שליפת דיווחים מאוריגמי",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -40,
+        300
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "REPLACE_WITH_ORIGAMI_CREDENTIAL_ID",
+          "name": "Origami API Header Auth"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// ==========================================================================\n// עיבוד הדיווחים: סינון של דיווחים שלא אושרו לתשלום ולא שולמו, ובניית טבלת HTML.\n// ==========================================================================\n//\n// התאמה למבנה ה-API של אוריגמי:\n// אם התשובה מגיעה במעטפת (למשל { data: [...] }) — עדכנו את השורה שמחלצת את המערך.\n// אם שמות השדות שונים אצלכם — עדכנו את המפתחות בפונקציה pick() למטה.\n\nconst cfg = $('הגדרות').first().json;\nconst recipientName = cfg.recipientName || 'מנחם ברקוביץ';\nconst projectName = cfg.projectName || 'בעל שם טוב';\n\n// --- 1. חילוץ מערך הדיווחים מכל פריטי הכניסה ---\nlet reports = [];\nfor (const item of items) {\n  const j = item.json;\n  if (Array.isArray(j)) reports.push(...j);\n  else if (Array.isArray(j.data)) reports.push(...j.data);\n  else if (Array.isArray(j.reports)) reports.push(...j.reports);\n  else if (Array.isArray(j.results)) reports.push(...j.results);\n  else reports.push(j);\n}\n\n// --- 2. עוזרים לזיהוי \"לא אושר לתשלום\" ו-\"לא שולם\" בצורה עמידה ---\nconst truthy = (v) => v === true || v === 1 || v === '1' ||\n  ['true', 'yes', 'כן', 'מאושר', 'approved', 'paid', 'שולם'].includes(String(v || '').trim().toLowerCase());\n\nconst isApprovedForPayment = (r) => truthy(r.approved_for_payment ?? r.payment_approved ?? r.approved ?? r.is_approved) ||\n  ['מאושר', 'approved', 'אושר לתשלום'].includes(String(r.payment_status || r.status || '').trim().toLowerCase());\n\nconst isPaid = (r) => truthy(r.paid ?? r.is_paid) ||\n  ['שולם', 'paid', 'שולם במלואו'].includes(String(r.payment_status || r.status || '').trim().toLowerCase());\n\n// --- 3. סינון: לא אושר לתשלום וגם לא שולם ---\nconst unpaid = reports.filter((r) => !isApprovedForPayment(r) && !isPaid(r));\n\n// --- 4. עוזרים לפורמט ---\nconst esc = (s) => String(s == null ? '' : s)\n  .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\"/g, '&quot;');\n\nconst fmtDate = (v) => {\n  if (!v) return '';\n  const d = new Date(v);\n  if (isNaN(d.getTime())) return esc(v);\n  return d.toLocaleDateString('he-IL', { day: '2-digit', month: '2-digit', year: 'numeric' });\n};\n\nconst fmtMoney = (v) => {\n  const n = Number(String(v == null ? '' : v).replace(/[^0-9.-]/g, ''));\n  if (isNaN(n) || v == null || v === '') return '';\n  return '₪' + n.toLocaleString('he-IL', { minimumFractionDigits: 2, maximumFractionDigits: 2 });\n};\n\n// --- 5. מיפוי שדות (התאימו לשמות אצלכם במידת הצורך) ---\nconst pick = (r) => ({\n  date: r.report_date ?? r.date ?? r.created_at ?? r.reported_at,\n  reporter: r.reporter_name ?? r.reporter ?? r.user_name ?? r.employee ?? r.user?.name,\n  description: r.description ?? r.title ?? r.notes ?? r.task ?? r.subject,\n  hours: r.hours ?? r.duration ?? r.quantity,\n  amount: r.amount ?? r.total ?? r.sum ?? r.price ?? r.cost,\n  status: r.status ?? r.payment_status ?? 'לא אושר / לא שולם',\n  id: r.id ?? r.report_id ?? r.number,\n});\n\nconst rows = unpaid.map(pick);\n\n// --- 6. חישוב סכום כולל ---\nconst totalAmount = rows.reduce((sum, r) => {\n  const n = Number(String(r.amount == null ? '' : r.amount).replace(/[^0-9.-]/g, ''));\n  return sum + (isNaN(n) ? 0 : n);\n}, 0);\n\n// --- 7. תאריך להצגה ---\nconst now = $now ? $now.toFormat('dd/MM/yyyy') : new Date().toLocaleDateString('he-IL');\n\n// --- 8. בניית ה-HTML ---\nconst brandColor = '#1f3a5f';\nconst accent = '#c9a227';\n\nlet tableRowsHtml;\nif (rows.length === 0) {\n  tableRowsHtml = `<tr><td colspan=\"6\" style=\"padding:18px;text-align:center;color:#6b7280;\">\\u2705 אין דיווחים ממתינים \\u2013 כל הדיווחים אושרו/שולמו.</td></tr>`;\n} else {\n  tableRowsHtml = rows.map((r, i) => `\n    <tr style=\"background:${i % 2 ? '#f7f8fa' : '#ffffff'};\">\n      <td style=\"padding:10px 12px;border-bottom:1px solid #e5e7eb;white-space:nowrap;\">${fmtDate(r.date)}</td>\n      <td style=\"padding:10px 12px;border-bottom:1px solid #e5e7eb;\">${esc(r.reporter)}</td>\n      <td style=\"padding:10px 12px;border-bottom:1px solid #e5e7eb;\">${esc(r.description)}</td>\n      <td style=\"padding:10px 12px;border-bottom:1px solid #e5e7eb;text-align:center;\">${esc(r.hours)}</td>\n      <td style=\"padding:10px 12px;border-bottom:1px solid #e5e7eb;text-align:left;white-space:nowrap;\">${fmtMoney(r.amount)}</td>\n      <td style=\"padding:10px 12px;border-bottom:1px solid #e5e7eb;\">\n        <span style=\"display:inline-block;background:#fdecea;color:#b42318;border-radius:12px;padding:2px 10px;font-size:12px;font-weight:600;\">${esc(r.status)}</span>\n      </td>\n    </tr>`).join('');\n}\n\nconst totalRowHtml = rows.length ? `\n    <tr style=\"background:${brandColor};color:#ffffff;font-weight:700;\">\n      <td colspan=\"4\" style=\"padding:12px;text-align:right;\">\\u05e1\\u05d4\\\"\\u05db (${rows.length} \\u05d3\\u05d9\\u05d5\\u05d5\\u05d7\\u05d9\\u05dd)</td>\n      <td style=\"padding:12px;text-align:left;white-space:nowrap;\">${fmtMoney(totalAmount)}</td>\n      <td style=\"padding:12px;\"></td>\n    </tr>` : '';\n\nconst html = `<!DOCTYPE html>\n<html lang=\"he\" dir=\"rtl\">\n<head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\"></head>\n<body style=\"margin:0;padding:0;background:#eef1f5;font-family:'Segoe UI',Arial,'Helvetica Neue',sans-serif;color:#111827;\">\n  <div style=\"max-width:760px;margin:0 auto;padding:24px;\">\n    <div style=\"background:#ffffff;border-radius:14px;overflow:hidden;box-shadow:0 4px 18px rgba(0,0,0,0.08);\">\n      <div style=\"background:linear-gradient(135deg, ${brandColor}, #2c527f);padding:26px 28px;\">\n        <div style=\"color:${accent};font-size:13px;letter-spacing:1px;font-weight:600;\">SLAVITA PUBLISHING</div>\n        <h1 style=\"margin:6px 0 0;color:#ffffff;font-size:22px;\">סיכום דיווחים – פרויקט \"${esc(projectName)}\"</h1>\n        <div style=\"margin-top:6px;color:#d7e0ec;font-size:14px;\">דיווחים שטרם אושרו לתשלום וטרם שולמו &nbsp;\\u2022&nbsp; הופק בתאריך ${now}</div>\n      </div>\n      <div style=\"padding:22px 28px 8px;\">\n        <p style=\"margin:0 0 14px;font-size:15px;\">שלום ${esc(recipientName)},</p>\n        <p style=\"margin:0 0 18px;font-size:15px;line-height:1.6;color:#374151;\">להלן סיכום כל הדיווחים בפרויקט <strong>\"${esc(projectName)}\"</strong> מתוך מערכת אוריגמי, שטרם אושרו לתשלום וטרם שולמו נכון להיום.</p>\n      </div>\n      <div style=\"padding:0 28px 26px;\">\n        <table style=\"width:100%;border-collapse:collapse;font-size:14px;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;\">\n          <thead>\n            <tr style=\"background:#f3f4f6;text-align:right;\">\n              <th style=\"padding:12px;border-bottom:2px solid #e5e7eb;font-weight:700;\">תאריך</th>\n              <th style=\"padding:12px;border-bottom:2px solid #e5e7eb;font-weight:700;\">מדווח</th>\n              <th style=\"padding:12px;border-bottom:2px solid #e5e7eb;font-weight:700;\">תיאור</th>\n              <th style=\"padding:12px;border-bottom:2px solid #e5e7eb;font-weight:700;text-align:center;\">שעות</th>\n              <th style=\"padding:12px;border-bottom:2px solid #e5e7eb;font-weight:700;text-align:left;\">סכום</th>\n              <th style=\"padding:12px;border-bottom:2px solid #e5e7eb;font-weight:700;\">סטטוס</th>\n            </tr>\n          </thead>\n          <tbody>\n            ${tableRowsHtml}\n            ${totalRowHtml}\n          </tbody>\n        </table>\n      </div>\n      <div style=\"padding:16px 28px;background:#f9fafb;border-top:1px solid #eef1f5;color:#6b7280;font-size:12px;\">\n        הודעה זו נשלחה אוטומטית ממערכת האוטומציה (n8n) בהתבסס על נתוני אוריגמי. &nbsp;\\u2022&nbsp; סלאוויטא\n      </div>\n    </div>\n  </div>\n</body>\n</html>`;\n\nconst subject = rows.length\n  ? `סיכום דיווחים לתשלום – פרויקט \"${projectName}\" (${rows.length} דיווחים, ${fmtMoney(totalAmount)})`\n  : `סיכום דיווחים – פרויקט \"${projectName}\" – אין דיווחים ממתינים`;\n\nreturn [{\n  json: {\n    subject,\n    html,\n    count: rows.length,\n    totalAmount,\n    recipientEmail: cfg.recipientEmail,\n    recipientName,\n  }\n}];"
+      },
+      "id": "build-html",
+      "name": "סינון ובניית טבלה",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        180,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $json.recipientEmail }}",
+        "subject": "={{ $json.subject }}",
+        "emailType": "html",
+        "message": "={{ $json.html }}",
+        "options": {}
+      },
+      "id": "send-email",
+      "name": "שליחת מייל למנחם",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        400,
+        300
+      ],
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "REPLACE_WITH_GMAIL_CREDENTIAL_ID",
+          "name": "Gmail account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "כל 3 לחודש (08:00)": {
+      "main": [
+        [
+          {
+            "node": "הגדרות",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "הגדרות": {
+      "main": [
+        [
+          {
+            "node": "שליפת דיווחים מאוריגמי",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "שליפת דיווחים מאוריגמי": {
+      "main": [
+        [
+          {
+            "node": "סינון ובניית טבלה",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "סינון ובניית טבלה": {
+      "main": [
+        [
+          {
+            "node": "שליחת מייל למנחם",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Asia/Jerusalem"
+  },
+  "pinData": {}
+}
