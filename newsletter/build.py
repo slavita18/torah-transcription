@@ -42,6 +42,12 @@ BORDER = (0.2709392011165619, 0.2682535946369171, 0.16369879245758057)
 BODY_COL="#231f20"; TITLE_COL="#77797c"; MAST_COL="#0a385f"; OLIVE="#63603f"
 
 doc = Document(DOCX); P=[p.text.strip() for p in doc.paragraphs]
+# MuPDF/HarfBuzz mirror ()[] in RTL runs (so "(" would show as ")"), but the
+# template keeps them un-mirrored. The body fonts map these non-mirrored
+# "Other Neutral" codepoints to the ()[] glyphs; remapping the text to them
+# keeps correct RTL position without the mirroring.
+_PAR = {ord('('):'†', ord(')'):'‡', ord('['):'§', ord(']'):'¶'}
+def fixp(s): return s.translate(_PAR)
 def esc(s): return s.replace("&","&amp;").replace("<","&lt;").replace(">","&gt;")
 
 sec_gedank  = [p for p in P[5:10]  if p]
@@ -72,17 +78,18 @@ arch = fitz.Archive(HERE); pdf = fitz.open(SRC)
 
 def body_html(paras, sub=None):
     h='<div class="body">'
-    if sub: h+='<p class="sub">%s</p>'%esc(sub)
-    return h+"".join("<p>%s</p>"%esc(p) for p in paras)+"</div>"
+    if sub: h+='<p class="sub">%s</p>'%esc(fixp(sub))
+    return h+"".join("<p>%s</p>"%esc(fixp(p)) for p in paras)+"</div>"
 
-# page, mask-rect, body-rect, paras, subtitle  (page-2 columns extended to y=649)
+# page, mask-rect, body-rect, paras, subtitle, mode  (page-2 columns extended to y=649)
+# mode "fill" = stretch line spacing to fill the whole box; "fit" = shrink-to-fit
 sections=[
-    (0,(310,268,577,755),(311,270,576,752),sec_gedank,subtitle1),
-    (0,( 33,268,281,755),( 35,270,279,752),sec_shmues,None),
-    (1,(303, 63,575,551),(305, 66,573,649),sec_halacha,None),
-    (1,( 32, 63,286,551),( 34, 66,284,649),sec_chidush,None),
+    (0,(310,268,577,755),(311,270,576,752),sec_gedank, subtitle1,"fill"),
+    (0,( 33,268,281,755),( 35,270,279,752),sec_shmues, None,     "fit"),
+    (1,(303, 63,575,551),(305, 66,573,649),sec_halacha,None,     "fit"),
+    (1,( 32, 63,286,551),( 34, 66,284,649),sec_chidush,None,     "fill"),
 ]
-for pno,mask,brect,paras,sub in sections:
+for pno,mask,brect,paras,sub,mode in sections:
     pdf[pno].draw_rect(fitz.Rect(*mask),color=None,fill=GRAY)  # mask old body
 
 # ---- extend page-2 column frames downward, erasing the old card grid ----
@@ -99,17 +106,35 @@ for fx0,fx1,ox0,ox1,ix0,ix1,w in [
     for x in (ix0,ix1): p2.draw_line(fitz.Point(x,548),fitz.Point(x,INB),color=CREAM,width=w)
     p2.draw_line(fitz.Point(ix0,INB),fitz.Point(ix1,INB),color=CREAM,width=w)
 
-# ---- flow bodies (vertically center columns that don't fill) ----
-def place_body(page, brect, html):
+# ---- flow bodies ----
+def measure(page, brect, html, css):
     tmp=fitz.open(); tp=tmp.new_page(width=page.rect.width,height=page.rect.height)
-    spare,scale=tp.insert_htmlbox(fitz.Rect(*brect),html,css=CSS,archive=arch,scale_low=0.1)
-    r=fitz.Rect(*brect)
-    if scale>=0.999 and spare>12: r.y0=min(r.y0+spare/2, r.y1-20)
-    page.insert_htmlbox(r,html,css=CSS,archive=arch,scale_low=0.1)
-    return scale,spare
-for pno,mask,brect,paras,sub in sections:
-    scale,spare=place_body(pdf[pno],brect,body_html(paras,sub))
-    print(f"page{pno+1} fit scale={scale:.3f} spare={spare:.1f}")
+    return tp.insert_htmlbox(fitz.Rect(*brect),html,css=css,archive=arch,scale_low=0.1)
+def place_body(page, brect, html, mode):
+    if mode=="fill":                      # fill the box: raise size (cap 11.5), then leading
+        fs=9.7
+        while fs<11.5:
+            css=CSS+f".body{{font-size:{fs+0.3:.2f}px;line-height:1.45;}}"
+            spare,scale=measure(page,brect,html,css)
+            if scale>=0.999 and spare>=6: fs+=0.3
+            else: break
+        lo,hi,best=1.30,2.6,1.45
+        for _ in range(16):
+            mid=(lo+hi)/2
+            css=CSS+f".body{{font-size:{fs:.2f}px;line-height:{mid:.3f};}}"
+            spare,scale=measure(page,brect,html,css)
+            if scale>=0.999 and spare>=3: best=mid; lo=mid
+            else: hi=mid
+        css=CSS+f".body{{font-size:{fs:.2f}px;line-height:{best:.3f};}}"
+        page.insert_htmlbox(fitz.Rect(*brect),html,css=css,archive=arch,scale_low=0.1)
+        return f"fs={fs:.1f} lh={best:.2f}"
+    else:                                 # shrink-to-fit
+        spare,scale=measure(page,brect,html,CSS)
+        page.insert_htmlbox(fitz.Rect(*brect),html,css=CSS,archive=arch,scale_low=0.1)
+        return f"scale={scale:.3f}"
+for pno,mask,brect,paras,sub,mode in sections:
+    info=place_body(pdf[pno],brect,body_html(paras,sub),mode)
+    print(f"page{pno+1} {mode} {info}")
 
 # ---- topic titles (real BATzarfati); page-1 'פנינים ופרפראות' is unchanged ----
 for pno,x0,x1,yt,yb,txt in [
@@ -126,6 +151,9 @@ for pno,x0,x1,yt,yb,txt in [
 CX0,CY0,CX1,CY1 = 132,662,480,752
 p2.draw_rect(fitz.Rect(CX0,CY0,CX1,CY1),color=BORDER,fill=CREAM,width=1.1,radius=0.06)
 p2.draw_rect(fitz.Rect(CX0+2.5,CY0+2.5,CX1-2.5,CY1-2.5),color=BORDER,fill=None,width=0.7,radius=0.06)
+# ---- remove the summer thank-you footer line (keep the page-number footer) ----
+p2.draw_rect(fitz.Rect(48,758,505,782),color=None,fill=BROWN)
+
 card=('<div class="card"><div class="pat">פטרון השבוע</div>'
       '<div class="parsha">פרשת פינחס</div>'
       '<div class="hon">ידידינו הדגול הרבני הנגיד</div>'

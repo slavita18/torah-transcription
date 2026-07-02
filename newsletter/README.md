@@ -33,9 +33,19 @@ The resulting TTFs live in `fonts/`.
   week's patron, **משה גרינפעלד** (full honorifics kept). The freed vertical
   space is used to **widen the א הלכה column** so it is less cramped.
 
+- The summer thank-you footer line on page 2 is removed (plain brown background).
+
 **Kept unchanged** (original artwork):
 - Header banner / logo, decorative type-words (`א געדאנק`, `א שמועס`,
-  `א הלכה`, `א חידוש`), column frames and rules, thank-you footer, page footers.
+  `א הלכה`, `א חידוש`), column frames and rules, page footers.
+
+## Typesetting details
+- **Parentheses/brackets** — MuPDF/HarfBuzz mirror `()[]` in RTL runs, but the
+  template keeps them un-mirrored (`(text)` with the open bracket on the right).
+  The body fonts therefore map non-mirrored "Other Neutral" codepoints
+  (`† ‡ § ¶`) to the `( ) [ ]` glyphs, and `build.py` remaps the text to them.
+- **Column fill** — `א געדאנק` and `א חידוש` are stretched (larger size and/or
+  line spacing) to fill their boxes; the other two shrink-to-fit.
 
 ## Section mapping (the מדורים)
 | Template type-word | Topic title (Pinchas)      |
