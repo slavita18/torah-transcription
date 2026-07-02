@@ -40,10 +40,12 @@ The resulting TTFs live in `fonts/`.
   `א הלכה`, `א חידוש`), column frames and rules, page footers.
 
 ## Typesetting details
-- **Parentheses/brackets** — MuPDF/HarfBuzz mirror `()[]` in RTL runs, but the
-  template keeps them un-mirrored (`(text)` with the open bracket on the right).
-  The body fonts therefore map non-mirrored "Other Neutral" codepoints
-  (`† ‡ § ¶`) to the `( ) [ ]` glyphs, and `build.py` remaps the text to them.
+- **Parentheses/brackets** — the template keeps them un-mirrored (`(text)` with
+  the open bracket on the right), but MuPDF mirrors every glyph in an RTL run.
+  So the body fonts (`fonts/frank-*.ttf`) carry clean `( ) [ ]` glyphs (from
+  Frank Ruhl Libre) exposed on non-mirrored "Other Neutral" codepoints
+  (`† ‡ § ¶`) mapped to the *opposite* bracket, so MuPDF's mirroring lands on
+  the correct shape. `build.py` remaps the text `()[]` to `†‡§¶`.
 - **Column fill** — `א געדאנק` and `א חידוש` are stretched (larger size and/or
   line spacing) to fill their boxes; the other two shrink-to-fit.
 
