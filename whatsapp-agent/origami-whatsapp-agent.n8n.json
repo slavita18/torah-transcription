@@ -1,0 +1,390 @@
+{
+  "name": "סוכן וואטסאפ ← אוריגמי CRM",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": ["messages"]
+      },
+      "id": "wa-trigger",
+      "name": "וואטסאפ - הודעה נכנסת",
+      "type": "n8n-nodes-base.whatsAppTrigger",
+      "typeVersion": 1,
+      "position": [-820, 300],
+      "webhookId": "origami-agent-wa",
+      "credentials": {
+        "whatsAppTriggerApi": {
+          "id": "REPLACE_WA_CRED_ID",
+          "name": "WhatsApp account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": { "caseSensitive": false, "typeValidation": "loose" },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.messages[0].type }}",
+                    "rightValue": "text",
+                    "operator": { "type": "string", "operation": "equals" }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "outputKey": "טקסט"
+            },
+            {
+              "conditions": {
+                "options": { "caseSensitive": false, "typeValidation": "loose" },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.messages[0].type }}",
+                    "rightValue": "image,document",
+                    "operator": { "type": "string", "operation": "regex" }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "outputKey": "חשבונית (תמונה/קובץ)"
+            }
+          ]
+        },
+        "options": { "fallbackOutput": "extra" }
+      },
+      "id": "switch-type",
+      "name": "טקסט או חשבונית?",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [-580, 300]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a1",
+              "name": "userMessage",
+              "value": "={{ $json.messages[0].text.body }}",
+              "type": "string"
+            },
+            {
+              "id": "a2",
+              "name": "from",
+              "value": "={{ $json.messages[0].from }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "set-text",
+      "name": "הכנת טקסט",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [-320, 180]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://graph.facebook.com/v21.0/{{ $json.messages[0].image ? $json.messages[0].image.id : $json.messages[0].document.id }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "whatsAppApi",
+        "options": {}
+      },
+      "id": "media-url",
+      "name": "כתובת המדיה",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [-320, 420],
+      "credentials": {
+        "whatsAppApi": {
+          "id": "REPLACE_WA_CRED_ID",
+          "name": "WhatsApp account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $json.url }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "whatsAppApi",
+        "options": { "response": { "response": { "responseFormat": "file" } } }
+      },
+      "id": "media-binary",
+      "name": "הורדת הקובץ",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [-100, 420],
+      "credentials": {
+        "whatsAppApi": {
+          "id": "REPLACE_WA_CRED_ID",
+          "name": "WhatsApp account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelId": "claude-sonnet-4-5",
+        "messages": {
+          "values": [
+            {
+              "content": "קרא את החשבונית המצורפת והחזר JSON בלבד עם השדות: supplier (שם הספק), invoice_number (מספר חשבונית), date (תאריך), total (סכום כולל), currency (מטבע). אם שדה חסר החזר null.",
+              "type": "text"
+            },
+            {
+              "binaryImageData": true,
+              "type": "imageBinary"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "read-invoice",
+      "name": "קריאת החשבונית (ראייה)",
+      "type": "@n8n/n8n-nodes-langchain.anthropic",
+      "typeVersion": 1,
+      "position": [120, 420],
+      "credentials": {
+        "anthropicApi": {
+          "id": "REPLACE_ANTHROPIC_CRED_ID",
+          "name": "Anthropic account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "b1",
+              "name": "userMessage",
+              "value": "=קיבלתי חשבונית מספק. פרטי החשבונית שחולצו: {{ $json.text }}. מצא את התשלומים לאותו ספק שתואמים לחשבונית וסמן עליהם שיש חשבונית.",
+              "type": "string"
+            },
+            {
+              "id": "b2",
+              "name": "from",
+              "value": "={{ $('וואטסאפ - הודעה נכנסת').item.json.messages[0].from }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "set-invoice",
+      "name": "הכנת חשבונית",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [340, 420]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.userMessage }}",
+        "options": {
+          "systemMessage": "אתה עוזר אישי חכם של סלביתא, מחובר למערכת ה-CRM \"אוריגמי\". אתה מקבל הודעות בעברית בוואטסאפ ומבצע פעולות במערכת.\n\nהכלים שלך:\n- create_expense — הוספת הוצאה לספק. חלץ מההודעה: סכום, מטבע (אם כתוב $ אז USD, אם ₪ אז ILS, ברירת מחדל ILS), שם הספק, שם הפרויקט, ולמי דרוש החזר (אם צוין), והערות.\n- find_payments — חיפוש תשלומים קיימים לפי שם ספק / סכום / תאריך.\n- mark_invoice — סימון שתשלום קיבל חשבונית, לפי מזהה התשלום (payment_id).\n\nכללי עבודה:\n1. הבן את כוונת המשתמש וחלץ את כל הפרטים הרלוונטיים מההודעה החופשית.\n2. אם חסר פרט קריטי (למשל סכום או שם ספק) — שאל שאלה קצרה אחת בעברית במקום לנחש.\n3. כשמדובר בהתאמת חשבונית: קודם קרא ל-find_payments לפי שם הספק, השווה סכומים/תאריכים לחשבונית, ואז קרא ל-mark_invoice עבור כל תשלום תואם.\n4. ענה תמיד בעברית, בקצרה וברור. בסיום פעולה — אשר בדיוק מה ביצעת (\"נוספה הוצאה של $50 לספק משה כהן בפרויקט יעקב הלבן, סומן החזר לבנימין ✅\").\n5. אל תמציא נתונים. אם פעולה נכשלה — דווח בפשטות."
+        }
+      },
+      "id": "ai-agent",
+      "name": "🤖 סוכן אוריגמי",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [640, 300]
+    },
+    {
+      "parameters": {
+        "model": "claude-sonnet-4-5",
+        "options": {}
+      },
+      "id": "chat-model",
+      "name": "מודל Claude",
+      "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
+      "typeVersion": 1.3,
+      "position": [500, 540],
+      "credentials": {
+        "anthropicApi": {
+          "id": "REPLACE_ANTHROPIC_CRED_ID",
+          "name": "Anthropic account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $json.from }}",
+        "contextWindowLength": 10
+      },
+      "id": "memory",
+      "name": "זיכרון שיחה",
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [640, 540]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.ORIGAMI_BASE_URL }}/expenses",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "=Bearer {{ $env.ORIGAMI_API_KEY }}" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"amount\": {amount},\n  \"currency\": \"{currency}\",\n  \"supplier\": \"{supplier}\",\n  \"project\": \"{project}\",\n  \"reimbursement_to\": \"{reimbursement_to}\",\n  \"notes\": \"{notes}\"\n}",
+        "placeholderDefinitions": {
+          "values": [
+            { "name": "amount", "description": "סכום ההוצאה כמספר, למשל 50", "type": "number" },
+            { "name": "currency", "description": "קוד מטבע: USD / ILS / EUR", "type": "string" },
+            { "name": "supplier", "description": "שם הספק", "type": "string" },
+            { "name": "project", "description": "שם הפרויקט", "type": "string" },
+            { "name": "reimbursement_to", "description": "למי דרוש החזר (ריק אם לא צוין)", "type": "string" },
+            { "name": "notes", "description": "הערות נוספות", "type": "string" }
+          ]
+        },
+        "toolDescription": "הוספת הוצאה חדשה לספק במערכת אוריגמי. השתמש כשהמשתמש מבקש להוסיף/לרשום הוצאה או תשלום לספק."
+      },
+      "id": "tool-expense",
+      "name": "create_expense",
+      "type": "@n8n/n8n-nodes-langchain.toolHttpRequest",
+      "typeVersion": 1.1,
+      "position": [820, 540]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $env.ORIGAMI_BASE_URL }}/payments",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "=Bearer {{ $env.ORIGAMI_API_KEY }}" }
+          ]
+        },
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "supplier", "value": "{supplier}" },
+            { "name": "amount", "value": "{amount}" }
+          ]
+        },
+        "placeholderDefinitions": {
+          "values": [
+            { "name": "supplier", "description": "שם הספק לחיפוש", "type": "string" },
+            { "name": "amount", "description": "סכום התשלום לחיפוש (אופציונלי)", "type": "string" }
+          ]
+        },
+        "toolDescription": "חיפוש תשלומים קיימים במערכת אוריגמי לפי שם ספק ו/או סכום. מחזיר רשימת תשלומים עם מזהה (payment_id), סכום ותאריך."
+      },
+      "id": "tool-find",
+      "name": "find_payments",
+      "type": "@n8n/n8n-nodes-langchain.toolHttpRequest",
+      "typeVersion": 1.1,
+      "position": [980, 540]
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "={{ $env.ORIGAMI_BASE_URL }}/payments/{payment_id}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "=Bearer {{ $env.ORIGAMI_API_KEY }}" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"has_invoice\": true,\n  \"invoice_number\": \"{invoice_number}\"\n}",
+        "placeholderDefinitions": {
+          "values": [
+            { "name": "payment_id", "description": "מזהה התשלום שיש לסמן", "type": "string" },
+            { "name": "invoice_number", "description": "מספר החשבונית", "type": "string" }
+          ]
+        },
+        "toolDescription": "סימון שתשלום מסוים קיבל חשבונית, לפי מזהה התשלום (payment_id)."
+      },
+      "id": "tool-mark",
+      "name": "mark_invoice",
+      "type": "@n8n/n8n-nodes-langchain.toolHttpRequest",
+      "typeVersion": 1.1,
+      "position": [1140, 540]
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "phoneNumberId": "={{ $('וואטסאפ - הודעה נכנסת').item.json.metadata.phone_number_id }}",
+        "recipientPhoneNumber": "={{ $('וואטסאפ - הודעה נכנסת').item.json.messages[0].from }}",
+        "textBody": "={{ $json.output }}",
+        "additionalFields": {}
+      },
+      "id": "wa-send",
+      "name": "וואטסאפ - שליחת תשובה",
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1,
+      "position": [1020, 300],
+      "credentials": {
+        "whatsAppApi": {
+          "id": "REPLACE_WA_CRED_ID",
+          "name": "WhatsApp account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "וואטסאפ - הודעה נכנסת": {
+      "main": [[{ "node": "טקסט או חשבונית?", "type": "main", "index": 0 }]]
+    },
+    "טקסט או חשבונית?": {
+      "main": [
+        [{ "node": "הכנת טקסט", "type": "main", "index": 0 }],
+        [{ "node": "כתובת המדיה", "type": "main", "index": 0 }]
+      ]
+    },
+    "הכנת טקסט": {
+      "main": [[{ "node": "🤖 סוכן אוריגמי", "type": "main", "index": 0 }]]
+    },
+    "כתובת המדיה": {
+      "main": [[{ "node": "הורדת הקובץ", "type": "main", "index": 0 }]]
+    },
+    "הורדת הקובץ": {
+      "main": [[{ "node": "קריאת החשבונית (ראייה)", "type": "main", "index": 0 }]]
+    },
+    "קריאת החשבונית (ראייה)": {
+      "main": [[{ "node": "הכנת חשבונית", "type": "main", "index": 0 }]]
+    },
+    "הכנת חשבונית": {
+      "main": [[{ "node": "🤖 סוכן אוריגמי", "type": "main", "index": 0 }]]
+    },
+    "מודל Claude": {
+      "ai_languageModel": [[{ "node": "🤖 סוכן אוריגמי", "type": "ai_languageModel", "index": 0 }]]
+    },
+    "זיכרון שיחה": {
+      "ai_memory": [[{ "node": "🤖 סוכן אוריגמי", "type": "ai_memory", "index": 0 }]]
+    },
+    "create_expense": {
+      "ai_tool": [[{ "node": "🤖 סוכן אוריגמי", "type": "ai_tool", "index": 0 }]]
+    },
+    "find_payments": {
+      "ai_tool": [[{ "node": "🤖 סוכן אוריגמי", "type": "ai_tool", "index": 0 }]]
+    },
+    "mark_invoice": {
+      "ai_tool": [[{ "node": "🤖 סוכן אוריגמי", "type": "ai_tool", "index": 0 }]]
+    },
+    "🤖 סוכן אוריגמי": {
+      "main": [[{ "node": "וואטסאפ - שליחת תשובה", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": { "executionOrder": "v1" },
+  "active": false,
+  "pinData": {},
+  "meta": {
+    "template_credsSetupCompleted": false,
+    "description": "סוכן וואטסאפ המחובר לאוריגמי CRM. בנוי ע\"י Claude Code. יש להשלים את פרטי ה-API של אוריגמי (ORIGAMI_BASE_URL, ORIGAMI_API_KEY) ואת שמות השדות בכלים לפי התיעוד של אוריגמי."
+  }
+}
