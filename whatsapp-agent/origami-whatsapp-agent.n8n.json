@@ -162,10 +162,10 @@
       "parameters": {
         "method": "POST",
         "url": "={{ $env.ORIGAMI_BASE_URL }}/entities/api/instance_data/format/json",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpHeaderAuth",
         "sendHeaders": true,
         "headerParameters": { "parameters": [
-          { "name": "api-user", "value": "={{ $env.ORIGAMI_API_USER }}" },
-          { "name": "api-key", "value": "={{ $env.ORIGAMI_API_KEY }}" },
           { "name": "Content-Type", "value": "application/json" }
         ] },
         "sendBody": true,
@@ -181,17 +181,15 @@
       "name": "origami_create",
       "type": "@n8n/n8n-nodes-langchain.toolHttpRequest",
       "typeVersion": 1.1,
-      "position": [740, 480]
+      "position": [740, 480],
+      "credentials": { "httpHeaderAuth": { "id": "REPLACE_ORIGAMI_CRED_ID", "name": "Origami API" } }
     },
     {
       "parameters": {
         "method": "GET",
         "url": "={{ $env.ORIGAMI_BASE_URL }}/entities/api/instance_data/format/json",
-        "sendHeaders": true,
-        "headerParameters": { "parameters": [
-          { "name": "api-user", "value": "={{ $env.ORIGAMI_API_USER }}" },
-          { "name": "api-key", "value": "={{ $env.ORIGAMI_API_KEY }}" }
-        ] },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpHeaderAuth",
         "sendQuery": true,
         "queryParameters": { "parameters": [
           { "name": "entity", "value": "{entity}" },
@@ -207,16 +205,17 @@
       "name": "origami_query",
       "type": "@n8n/n8n-nodes-langchain.toolHttpRequest",
       "typeVersion": 1.1,
-      "position": [880, 480]
+      "position": [880, 480],
+      "credentials": { "httpHeaderAuth": { "id": "REPLACE_ORIGAMI_CRED_ID", "name": "Origami API" } }
     },
     {
       "parameters": {
         "method": "PUT",
         "url": "={{ $env.ORIGAMI_BASE_URL }}/entities/api/instance_data/format/json/id/{record_id}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpHeaderAuth",
         "sendHeaders": true,
         "headerParameters": { "parameters": [
-          { "name": "api-user", "value": "={{ $env.ORIGAMI_API_USER }}" },
-          { "name": "api-key", "value": "={{ $env.ORIGAMI_API_KEY }}" },
           { "name": "Content-Type", "value": "application/json" }
         ] },
         "sendBody": true,
@@ -233,17 +232,15 @@
       "name": "origami_update",
       "type": "@n8n/n8n-nodes-langchain.toolHttpRequest",
       "typeVersion": 1.1,
-      "position": [1020, 480]
+      "position": [1020, 480],
+      "credentials": { "httpHeaderAuth": { "id": "REPLACE_ORIGAMI_CRED_ID", "name": "Origami API" } }
     },
     {
       "parameters": {
         "method": "DELETE",
         "url": "={{ $env.ORIGAMI_BASE_URL }}/entities/api/instance_data/format/json/id/{record_id}",
-        "sendHeaders": true,
-        "headerParameters": { "parameters": [
-          { "name": "api-user", "value": "={{ $env.ORIGAMI_API_USER }}" },
-          { "name": "api-key", "value": "={{ $env.ORIGAMI_API_KEY }}" }
-        ] },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpHeaderAuth",
         "sendQuery": true,
         "queryParameters": { "parameters": [ { "name": "entity", "value": "{entity}" } ] },
         "placeholderDefinitions": { "values": [
@@ -256,7 +253,8 @@
       "name": "origami_delete",
       "type": "@n8n/n8n-nodes-langchain.toolHttpRequest",
       "typeVersion": 1.1,
-      "position": [1160, 480]
+      "position": [1160, 480],
+      "credentials": { "httpHeaderAuth": { "id": "REPLACE_ORIGAMI_CRED_ID", "name": "Origami API" } }
     },
     {
       "parameters": {
@@ -288,11 +286,8 @@
       "parameters": {
         "method": "GET",
         "url": "={{ $env.ORIGAMI_BASE_URL }}/entities/api/instance_data/format/json",
-        "sendHeaders": true,
-        "headerParameters": { "parameters": [
-          { "name": "api-user", "value": "={{ $env.ORIGAMI_API_USER }}" },
-          { "name": "api-key", "value": "={{ $env.ORIGAMI_API_KEY }}" }
-        ] },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpHeaderAuth",
         "sendQuery": true,
         "queryParameters": { "parameters": [
           { "name": "entity", "value": "משימות" },
@@ -304,7 +299,8 @@
       "name": "שליפת משימות פתוחות",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [-560, 760]
+      "position": [-560, 760],
+      "credentials": { "httpHeaderAuth": { "id": "REPLACE_ORIGAMI_CRED_ID", "name": "Origami API" } }
     },
     {
       "parameters": {
@@ -358,6 +354,6 @@
   "active": false,
   "pinData": {},
   "meta": {
-    "description": "סוכן וואטסאפ מלא המחובר לאוריגמי CRM עם 4 כלי CRUD כלליים (יצירה/חיפוש/עדכון/מחיקה), קריאת חשבוניות בראייה, ובדיקה יומית של משימות פתוחות. יש להשלים ORIGAMI_BASE_URL, ORIGAMI_API_USER, ORIGAMI_API_KEY, OWNER_PHONE, WHATSAPP_PHONE_NUMBER_ID, ולוודא שמות ישויות/שדות מול חשבון אוריגמי."
+    "description": "סוכן וואטסאפ מלא המחובר לאוריגמי CRM דרך ה-Credential הקיים 'Origami API' (Header Auth). 4 כלי CRUD כלליים, קריאת חשבוניות בראייה, ובדיקה יומית של משימות פתוחות. יש להשלים ORIGAMI_BASE_URL, OWNER_PHONE, WHATSAPP_PHONE_NUMBER_ID, ולוודא שמות ישויות/שדות מול חשבון אוריגמי."
   }
 }
