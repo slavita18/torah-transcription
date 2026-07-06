@@ -115,7 +115,7 @@
       "parameters": {
         "assignments": {
           "assignments": [
-            { "id": "b1", "name": "userMessage", "value": "=קיבלתי חשבונית מספק. הנתונים שחולצו מהחשבונית: {{ $json.text }}. חפש באוריגמי את התשלומים לאותו ספק שתואמים לחשבונית (לפי סכום/תאריך), וסמן על כל תשלום תואם שהתקבלה חשבונית (מספר החשבונית). בסיום דווח לי מה סימנת.", "type": "string" },
+            { "id": "b1", "name": "userMessage", "value": "=קיבלתי חשבונית/קבלה מספק. הנתונים שחולצו: {{ $json.text }}. חפש בישות \"דיווחי עבודה\" את הרשומות של אותו ספק שתואמות לחשבונית (לפי הסכום/התאריך), וסמן על כל רשומה תואמת \"קבלה\"=כן ו\"אסמכתא\"=מספר החשבונית. בסיום דווח לי בקצרה מה סימנת.", "type": "string" },
             { "id": "b2", "name": "from", "value": "={{ $('וואטסאפ - הודעה נכנסת').item.json.messages[0].from }}", "type": "string" }
           ]
         },
@@ -132,7 +132,7 @@
         "promptType": "define",
         "text": "={{ $json.userMessage }}",
         "options": {
-          "systemMessage": "אתה עוזר אישי חכם של סלביתא, מחובר למערכת ה-CRM \"אוריגמי\" (origami.ms). אתה מקבל הודעות בעברית בוואטסאפ ומבצע פעולות אמיתיות במערכת דרך ה-API שלה.\n\n=== כלים ===\nלאוריגמי יש API מבוסס \"ישויות\" (entities) — כל סוג רשומה הוא ישות. יש לך 4 כלים כלליים שמכסים כל פעולה:\n- origami_create — יצירת רשומה חדשה בישות כלשהי (הוצאה, משימה, לקוח, תשלום...). מקבל: entity (שם הישות) + data (אובייקט השדות).\n- origami_query — חיפוש/שליפת רשומות מישות, עם סינון. מקבל: entity + filter. מחזיר רשומות כולל המזהה (id).\n- origami_update — עדכון רשומה קיימת (למשל סימון \"שולם\", עדכון סטטוס משימה, סימון \"התקבלה חשבונית\"). מקבל: entity + record_id + data.\n- origami_delete — מחיקת רשומה. מקבל: entity + record_id.\n\n=== הישויות בעסק (התאם את השמות המדויקים למערכת שלך) ===\n- \"הוצאות\" — שדות: amount (סכום), currency (מטבע), supplier (ספק), project (פרויקט), reimbursement_to (החזר למי), status (סטטוס: ממתין/שולם), notes.\n- \"תשלומים\" — שדות: supplier, amount, date, has_invoice (התקבלה חשבונית), invoice_number.\n- \"משימות\" — שדות: title (כותרת), status (פתוחה/בביצוע/הושלמה), due_date (תאריך יעד), assignee (אחראי), notes.\n- \"לקוחות\", \"ספקים\", \"פרויקטים\" — לפי הצורך.\n\n=== כללי עבודה ===\n1. הבן את כוונת המשתמש מההודעה החופשית וחלץ את כל הפרטים. מטבע: $=USD, ₪=ILS, ברירת מחדל ILS.\n2. אם חסר פרט קריטי (סכום/שם ספק/כותרת משימה) — שאל שאלה קצרה אחת בעברית במקום לנחש.\n3. פעולות נפוצות וכיצד למפות אותן:\n   - \"תוסיף הוצאה...\" → origami_create בישות \"הוצאות\".\n   - \"סמן ששולם / שולם ל...\" → origami_query למצוא את הרשומה, ואז origami_update עם status=שולם.\n   - \"תפתח משימה / תזכיר לי...\" → origami_create בישות \"משימות\" עם status=פתוחה.\n   - \"עדכן סטטוס משימה...\" → origami_query למצוא, ואז origami_update עם הסטטוס החדש.\n   - \"תמחק...\" → origami_query לאימות, ואז origami_delete. לפני מחיקה — ודא עם המשתמש בקצרה.\n   - התאמת חשבונית → origami_query לתשלומי הספק, השוואה, ואז origami_update לכל תשלום תואם.\n4. תמיד בצע query לפני update/delete כדי לקבל את ה-id הנכון.\n5. ענה תמיד בעברית, קצר וברור, ואשר בדיוק מה בוצע (\"✅ נוספה הוצאה $50 לספק משה כהן, פרויקט יעקב הלבן, סומן החזר לבנימין\").\n6. בבדיקה היומית: כשאני עונה על רשימת המשימות שנשלחה לי בבוקר — פרש את התשובה שלי ועדכן את המשימות בהתאם (סגור, דחה תאריך, שנה סטטוס וכו')."
+          "systemMessage": "אתה עוזר אישי חכם של סלביתא (הוצאת ספרים), מחובר למערכת ה-CRM אוריגמי בכתובת slavitapublishing.origami.ms. אתה מקבל הודעות בעברית בוואטסאפ ומבצע פעולות אמיתיות במערכת דרך ה-API שלה.\n\n=== כלים ===\nיש לך 4 כלים כלליים על ה-API של אוריגמי (מבוסס ישויות):\n- origami_create(entity, data) — יצירת רשומה חדשה.\n- origami_query(entity, filter) — חיפוש/שליפה. מחזיר רשומות כולל המזהה (id).\n- origami_update(entity, record_id, data) — עדכון רשומה קיימת.\n- origami_delete(entity, record_id) — מחיקת רשומה.\n\n=== הישויות במערכת (שמות אמיתיים ושדות אמיתיים) ===\n• \"דיווחי עבודה\" — הישות המרכזית לתשלומים והוצאות לספקים. שדות: \"שם הספק\", \"שם הפרויקט\", \"מספר פרויקט\", \"משימה\", \"חודש\", \"סכום\", \"מטבע\" (ערכים: ש\"ח / דולר), \"שער הדולר\", \"סכום בדולר\", \"צורת תשלום\" (למשל: העברה בנקאית), \"תאריך תשלום\", \"אסמכתא\", \"הוצאה להחזר\", \"החזר לשמואל/בנימין\", \"מאושר לתשלום\", \"שולם\", \"קבלה\" (האם התקבלה קבלה/חשבונית), \"מחיר לשעה\", \"שעות\", \"הערות\".\n• \"ספקים\" — שדות: \"שם\", \"תפקיד\", \"מחיר לשעה\", \"כתובת מייל\", \"טלפון נייד\", \"טלפון נוסף\".\n• \"פרויקטים\" — שדות: \"מספר פרויקט\", \"כותרת הפרויקט\", \"סוג פרויקט\", \"לקוח\", \"מצב פרויקט\", \"ניהול פרויקט\", \"תאריך התחלה\", \"תאריך סיום משוער\", \"סה\\\"כ לתשלום\".\n• \"משימות\" — שדות: \"כותרת\", \"סטטוס\", \"תאריך יעד\", \"אחראי\", \"פרויקט\".\n• \"לידים\", \"לקוחות\", \"אנשי קשר\", \"עסקאות\", \"תשלומים\" — לפי הצורך.\n\n=== מיפוי בקשות נפוצות ===\n1. \"תוסיף הוצאה/תשלום של X לספק Y, פרויקט Z, החזר ל-W\" → origami_create בישות \"דיווחי עבודה\": \"שם הספק\"=Y, \"שם הפרויקט\"=Z, \"סכום\"=X, \"מטבע\"=(דולר אם $, ש\"ח אם ₪), \"החזר לשמואל/בנימין\"=W.\n2. \"סמן ששולם ל-Y\" → origami_query בישות \"דיווחי עבודה\" (סינון לפי שם הספק), ואז origami_update עם \"שולם\"=כן.\n3. קיבלת חשבונית/קבלה מספק → origami_query בישות \"דיווחי עבודה\" לפי שם הספק והסכום, ואז origami_update עם \"קבלה\"=כן (ו\"אסמכתא\"=מספר החשבונית).\n4. \"תפתח משימה ...\" → origami_create בישות \"משימות\". \"עדכן סטטוס משימה\" → query ואז update.\n5. \"תמחק ...\" → origami_query לאימות, אשר איתי בקצרה, ואז origami_delete.\n\n=== כללים ===\n- מטבע: $=דולר, ₪=ש\"ח. ברירת מחדל ש\"ח.\n- תמיד בצע query לפני update/delete כדי לקבל את המזהה (id) הנכון.\n- אם חסר פרט קריטי (סכום/שם ספק/כותרת משימה) — שאל שאלה קצרה אחת בעברית במקום לנחש.\n- ענה תמיד בעברית, קצר וברור, ואשר בדיוק מה בוצע (\"✅ נוספה הוצאה $50 לספק משה כהן, פרויקט יעקב הלבן, סומן החזר לבנימין\").\n- בבדיקה היומית: כשאני עונה על רשימת המשימות שנשלחה לי בבוקר — פרש את התשובה שלי ועדכן את המשימות בהתאם (סגור, דחה תאריך, שנה סטטוס)."
         }
       },
       "id": "ai-agent",
@@ -161,7 +161,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "={{ $env.ORIGAMI_BASE_URL }}/entities/api/instance_data/format/json",
+        "url": "https://slavitapublishing.origami.ms/entities/api/instance_data/format/json",
         "authentication": "predefinedCredentialType",
         "nodeCredentialType": "httpHeaderAuth",
         "sendHeaders": true,
@@ -187,7 +187,7 @@
     {
       "parameters": {
         "method": "GET",
-        "url": "={{ $env.ORIGAMI_BASE_URL }}/entities/api/instance_data/format/json",
+        "url": "https://slavitapublishing.origami.ms/entities/api/instance_data/format/json",
         "authentication": "predefinedCredentialType",
         "nodeCredentialType": "httpHeaderAuth",
         "sendQuery": true,
@@ -211,7 +211,7 @@
     {
       "parameters": {
         "method": "PUT",
-        "url": "={{ $env.ORIGAMI_BASE_URL }}/entities/api/instance_data/format/json/id/{record_id}",
+        "url": "https://slavitapublishing.origami.ms/entities/api/instance_data/format/json/id/{record_id}",
         "authentication": "predefinedCredentialType",
         "nodeCredentialType": "httpHeaderAuth",
         "sendHeaders": true,
@@ -238,7 +238,7 @@
     {
       "parameters": {
         "method": "DELETE",
-        "url": "={{ $env.ORIGAMI_BASE_URL }}/entities/api/instance_data/format/json/id/{record_id}",
+        "url": "https://slavitapublishing.origami.ms/entities/api/instance_data/format/json/id/{record_id}",
         "authentication": "predefinedCredentialType",
         "nodeCredentialType": "httpHeaderAuth",
         "sendQuery": true,
@@ -285,13 +285,13 @@
     {
       "parameters": {
         "method": "GET",
-        "url": "={{ $env.ORIGAMI_BASE_URL }}/entities/api/instance_data/format/json",
+        "url": "https://slavitapublishing.origami.ms/entities/api/instance_data/format/json",
         "authentication": "predefinedCredentialType",
         "nodeCredentialType": "httpHeaderAuth",
         "sendQuery": true,
         "queryParameters": { "parameters": [
           { "name": "entity", "value": "משימות" },
-          { "name": "filter", "value": "status=פתוחה" }
+          { "name": "filter", "value": "סטטוס=פתוחה" }
         ] },
         "options": {}
       },
@@ -304,7 +304,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const rows = Array.isArray($json.data) ? $json.data : ($json.data ? [$json.data] : (Array.isArray($json) ? $json : []));\nlet body;\nif (!rows.length) {\n  body = 'בוקר טוב! ☀️ אין משימות פתוחות היום. 🎉';\n} else {\n  const lines = rows.map((t, i) => `${i + 1}. ${t.title || t.name || 'משימה'}${t.due_date ? ' (יעד: ' + t.due_date + ')' : ''}`);\n  body = 'בוקר טוב! ☀️ יש לך ' + rows.length + ' משימות פתוחות:\\n\\n' + lines.join('\\n') + '\\n\\nמה לעשות? ענה לי בחופשיות (למשל: \"סגור 1 ו-3, דחה את 2 למחר\").';\n}\nreturn [{ json: { body } }];"
+        "jsCode": "const rows = Array.isArray($json.data) ? $json.data : ($json.data ? [$json.data] : (Array.isArray($json) ? $json : []));\nconst title = (t) => t['כותרת'] || t.title || t.name || 'משימה';\nconst due = (t) => t['תאריך יעד'] || t.due_date;\nlet body;\nif (!rows.length) {\n  body = 'בוקר טוב! ☀️ אין משימות פתוחות היום. 🎉';\n} else {\n  const lines = rows.map((t, i) => `${i + 1}. ${title(t)}${due(t) ? ' (יעד: ' + due(t) + ')' : ''}`);\n  body = 'בוקר טוב! ☀️ יש לך ' + rows.length + ' משימות פתוחות:\\n\\n' + lines.join('\\n') + '\\n\\nמה לעשות? ענה לי בחופשיות (למשל: \"סגור 1 ו-3, דחה את 2 למחר\").';\n}\nreturn [{ json: { body } }];"
       },
       "id": "daily-format",
       "name": "עיצוב הודעת בוקר",
@@ -354,6 +354,6 @@
   "active": false,
   "pinData": {},
   "meta": {
-    "description": "סוכן וואטסאפ מלא המחובר לאוריגמי CRM דרך ה-Credential הקיים 'Origami API' (Header Auth). 4 כלי CRUD כלליים, קריאת חשבוניות בראייה, ובדיקה יומית של משימות פתוחות. יש להשלים ORIGAMI_BASE_URL, OWNER_PHONE, WHATSAPP_PHONE_NUMBER_ID, ולוודא שמות ישויות/שדות מול חשבון אוריגמי."
+    "description": "סוכן וואטסאפ מלא המחובר לאוריגמי CRM (slavitapublishing.origami.ms) דרך ה-Credential הקיים 'Origami API' (Header Auth). 4 כלי CRUD כלליים עם שמות ישויות/שדות אמיתיים (דיווחי עבודה, ספקים, פרויקטים, משימות), קריאת חשבוניות בראייה, ובדיקה יומית של משימות פתוחות. יש להשלים OWNER_PHONE ו-WHATSAPP_PHONE_NUMBER_ID, ולאמת את פרמטר הישות של ה-API מול תיעוד אוריגמי."
   }
 }
