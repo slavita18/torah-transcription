@@ -42,7 +42,7 @@ export default function HomePage({ onSelect }) {
           { icon: '📚', title: 'ספרייה חכמה', desc: 'שמירה, חיפוש וסיווג כל התמלולים' },
           { icon: '📄', title: 'ייצוא מקצועי', desc: 'Word ו-PDF בעיצוב ספרותי אלגנטי' },
         ].map(f => (
-          <div key={f.title} className="bg-white rounded-2xl border border-cream-200 p-6 text-center shadow-sm hover:shadow-md transition-shadow">
+          <div key={f.title} className="h-full min-h-[168px] flex flex-col items-center justify-center bg-white rounded-2xl border border-cream-200 p-6 text-center shadow-sm hover:shadow-md transition-shadow">
             <div className="text-4xl mb-3">{f.icon}</div>
             <h3 className="font-semibold text-navy-900 mb-1">{f.title}</h3>
             <p className="text-sm text-gray-500">{f.desc}</p>

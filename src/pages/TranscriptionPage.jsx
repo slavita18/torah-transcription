@@ -197,7 +197,7 @@ export default function TranscriptionPage({ language, anthropicKey, groqKey }) {
                     key={type}
                     onClick={() => handleTranscribe(type)}
                     disabled={!!loadingType}
-                    className={`relative p-4 rounded-2xl text-white text-right transition-all duration-200 shadow-sm hover:shadow-md active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed ${cfg.color}`}
+                    className={`relative h-full min-h-[128px] flex flex-col p-4 rounded-2xl text-white text-right transition-all duration-200 shadow-sm hover:shadow-md active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed ${cfg.color}`}
                   >
                     {isDone && <span className="absolute top-2 left-2 bg-white/20 rounded-full px-2 py-0.5 text-xs">✓</span>}
                     <div className="text-2xl mb-2">{isLoading ? '⏳' : cfg.icon}</div>
@@ -268,7 +268,7 @@ export default function TranscriptionPage({ language, anthropicKey, groqKey }) {
                       key={type}
                       onClick={() => handleTranscribe(type)}
                       disabled={!!loadingType}
-                      className={`p-4 rounded-2xl text-white text-right transition-all duration-200 shadow-sm hover:shadow-md active:scale-95 disabled:opacity-50 ${cfg.color}`}
+                      className={`h-full min-h-[128px] flex flex-col p-4 rounded-2xl text-white text-right transition-all duration-200 shadow-sm hover:shadow-md active:scale-95 disabled:opacity-50 ${cfg.color}`}
                     >
                       <div className="text-2xl mb-2">{loadingType === type ? '⏳' : cfg.icon}</div>
                       <div className="font-bold text-sm">{cfg.label}</div>
