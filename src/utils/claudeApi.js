@@ -13,7 +13,7 @@ async function transcribeWithWhisper(audioFile, groqApiKey, language) {
 
   if (language === 'yiddish') {
     formData.append('language', 'yi');
-    formData.append('prompt', 'This is a Torah lesson in Yiddish. The speaker uses religious and Torah terminology in Yiddish and Hebrew.');
+    formData.append('prompt', 'This is a Torah lesson in Yiddish. The speaker uses religious and Torah terminology in Yiddish and Hebrew, and everyday English loanwords written in Hebrew letters, for example סערווער / סערווערס (server / servers, i.e. waiters), טיפ (tip), and similar words.');
   }
 
   const response = await fetch(GROQ_WHISPER_URL, {
@@ -51,6 +51,11 @@ function buildClaudePrompt(type, metadata, language, outputLanguage, rawText) {
 
   const rawSection = `להלן התמלול הגולמי שהופק על ידי מחשב:\n---\n${rawText}\n---\n`;
 
+  // Common Whisper mis-transcriptions — especially English loanwords written in
+  // Hebrew letters — should be normalized to a single, correct spelling.
+  const correctionNote = `- תקן שיבושי תמלול נפוצים של המחשב, במיוחד מילים לועזיות שנכתבות באותיות עבריות. לדוגמה: "סערווער" / "סערווערס" (server / servers, כלומר מלצר / מלצרים), "טיפ" (tip). כתוב אותן בכתיב אחיד ונכון לאורך כל הטקסט
+- אם צוינו מונחים מיוחדים / שמות למעלה, ודא שהם מופיעים בכתיב הנכון בכל מקום שבו התמלול הגולמי שיבש אותם`;
+
   const prompts = {
     basic: `אתה עורך תמלול שיעור תורני.
 שם המגיד: ${maggid || 'לא צוין'}. נושא: ${topic || 'לא צוין'}. מונחים מיוחדים: ${terms || 'לא צוינו'}.
@@ -61,6 +66,7 @@ ${rawSection}
 - ערוך את הטקסט כך שיהיה קולח, מקצועי וברור
 - שמור על רצף הרעיונות והקצב המקורי
 - אל תוסיף תוכן חדש — רק ערוך ושפר
+${correctionNote}
 - התעלם מרעשי רקע, הפסקות ואמירות אקראיות שאינן חלק מהשיעור
 - חלק לפסקאות לפי זרימת הרעיונות
 - הפלט יהיה קריא ומסודר, מוכן לקריאה תוך כדי שמיעה`,
@@ -76,7 +82,8 @@ ${rawSection}
 - הוסף מראי מקומות (פסוקים, מקורות) שמוזכרים — סמן אותם בסוגריים מרובעים [כך]
 - זיהוי אוטומטי של פסוקים וציטוטים — עצב אותם במרכאות כפולות
 - עריכה קלה בלבד — אל תוסיף תוכן חדש
-- חלק לפסקאות ברורות לפי נושאי המשנה`,
+- חלק לפסקאות ברורות לפי נושאי המשנה
+${correctionNote}`,
 
     summary: `אתה מסכם שיעור תורני.
 שם המגיד: ${maggid || 'לא צוין'}. נושא: ${topic || 'לא צוין'}.
@@ -87,7 +94,8 @@ ${rawSection}
 - כתוב סיכום תמציתי וברור של השיעור
 - שמור על עיקרי הרעיונות לפי סדרם
 - אל תוסיף דברים שלא נאמרו
-- חלק לנקודות עיקריות עם מספור`,
+- חלק לנקודות עיקריות עם מספור
+${correctionNote}`,
   };
 
   return prompts[type];
