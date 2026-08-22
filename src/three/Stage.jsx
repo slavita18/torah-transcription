@@ -65,8 +65,8 @@ export default function Stage({ settings, assets, spreadIndex, setSpreadIndex, f
   return (
     <Canvas
       shadows
-      dpr={[1, 2]}
-      gl={{ preserveDrawingBuffer: true, antialias: true, alpha: true }}
+      dpr={[1, 1.75]}
+      gl={{ preserveDrawingBuffer: true, antialias: true, alpha: true, powerPreference: 'high-performance' }}
       camera={{ fov: 35, position: [4.2, 1.6, 5.2], near: 0.1, far: 100 }}
     >
       <CaptureBridge glRef={glRef} />
@@ -79,7 +79,7 @@ export default function Stage({ settings, assets, spreadIndex, setSpreadIndex, f
         position={[4, 8, 6]}
         intensity={1.7}
         castShadow
-        shadow-mapSize={[2048, 2048]}
+        shadow-mapSize={[1536, 1536]}
         shadow-camera-far={30}
         shadow-camera-left={-8}
         shadow-camera-right={8}

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import Stage from './three/Stage'
 import ControlPanel from './components/ControlPanel'
+import Prospectus from './components/Prospectus'
 import { DEFAULT_SETTINGS } from './lib/presets'
 import { fileToImage, pdfFirstPage, pdfToImages } from './lib/pdf'
 import { autoCropImage, detectTrimFraction, cropToFraction } from './lib/cropMarks'
@@ -23,6 +24,7 @@ export default function App() {
   const [busy, setBusy] = useState(false)
   const [status, setStatus] = useState('')
   const [recording, setRecording] = useState(false)
+  const [captures, setCaptures] = useState([]) // הדמיות שצולמו לפרוספקט
   const glRef = useRef(null)
 
   const update = useCallback((patch) => setSettings((s) => ({ ...s, ...patch })), [])
@@ -222,6 +224,23 @@ export default function App() {
     }
   }
 
+  // צילום ההדמיה הנוכחית לפרוספקט — ברקע שקוף לגזירה נקייה
+  const captureForProspectus = async () => {
+    const gl = glRef.current
+    if (!gl) return
+    const prev = {
+      bgType: settings.bgType, backgroundId: settings.backgroundId,
+      bgColor: settings.bgColor, bgTop: settings.bgTop, bgBottom: settings.bgBottom, bgImage: settings.bgImage,
+    }
+    update({ bgType: 'transparent' })
+    await sleep(160)
+    const data = gl.domElement.toDataURL('image/png')
+    update(prev)
+    setCaptures((c) => [...c, data])
+    setStatus('📸 ההדמיה נוספה לפרוספקט')
+    setTimeout(() => setStatus(''), 1600)
+  }
+
   const exportPng = () => {
     const gl = glRef.current
     if (!gl) return
@@ -249,31 +268,70 @@ export default function App() {
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-cream-50">
       {/* כותרת */}
-      <header className="z-20 flex items-center justify-between border-b border-cream-200 bg-white px-5 py-3 shadow-sm">
+      <header className="z-20 flex flex-wrap items-center justify-between gap-3 border-b border-cream-200 bg-white px-5 py-3 shadow-sm">
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-navy-800 text-lg text-white shadow">
             📚
           </div>
           <div>
             <h1 className="text-lg font-bold leading-tight text-navy-900">
-              מחולל הדמיות ספרים <span className="align-middle text-[10px] font-bold text-emerald-600">v11</span>
+              מחולל הדמיות ספרים <span className="align-middle text-[10px] font-bold text-emerald-600">v12</span>
             </h1>
-            <p className="text-xs text-navy-500">הדמיה תלת-ממדית לספרים עבריים · נפתח מימין לשמאל</p>
+            <p className="text-xs text-navy-500">הדמיות תלת-ממד ופרוספקטים לספרים עבריים · RTL</p>
           </div>
         </div>
-        <button
-          onClick={exportPng}
-          disabled={!hasContent}
-          className="btn-primary bg-navy-800 hover:bg-navy-700 focus:ring-navy-500 disabled:cursor-not-allowed disabled:opacity-40"
-        >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M12 4v12m0 0l-4-4m4 4l4-4M4 18v1a1 1 0 001 1h14a1 1 0 001-1v-1" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-          הורד תמונה
-        </button>
+
+        {/* מתגי מצב */}
+        <div className="flex rounded-2xl bg-cream-100 p-1">
+          {[
+            { id: 'closed', label: '📕 ספר סגור' },
+            { id: 'open', label: '📖 ספר פתוח' },
+            { id: 'prospectus', label: '🧾 פרוספקט' },
+          ].map((m) => (
+            <button
+              key={m.id}
+              onClick={() => update({ mode: m.id })}
+              className={`rounded-xl px-3.5 py-1.5 text-sm font-bold transition-all ${
+                settings.mode === m.id ? 'bg-white text-navy-900 shadow' : 'text-navy-500 hover:text-navy-700'
+              }`}
+            >
+              {m.label}
+            </button>
+          ))}
+        </div>
+
+        <div className="flex items-center gap-2">
+          {settings.mode !== 'prospectus' && hasContent && (
+            <button
+              onClick={captureForProspectus}
+              title="צלם את ההדמיה הנוכחית והוסף אותה לפרוספקט"
+              className="btn-secondary border-navy-200 text-navy-800 hover:bg-cream-50 focus:ring-navy-500"
+            >
+              📸 צלם לפרוספקט{captures.length > 0 ? ` (${captures.length})` : ''}
+            </button>
+          )}
+          {settings.mode !== 'prospectus' && (
+            <button
+              onClick={exportPng}
+              disabled={!hasContent}
+              className="btn-primary bg-navy-800 hover:bg-navy-700 focus:ring-navy-500 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M12 4v12m0 0l-4-4m4 4l4-4M4 18v1a1 1 0 001 1h14a1 1 0 001-1v-1" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+              הורד תמונה
+            </button>
+          )}
+        </div>
       </header>
 
       <div className="flex min-h-0 flex-1">
+        {settings.mode === 'prospectus' ? (
+          <main className="relative min-w-0 flex-1">
+            <Prospectus captures={captures} onClearCaptures={() => setCaptures([])} logo={assets.frontCropped || assets.frontRaw || null} />
+          </main>
+        ) : (
+        <>
         {/* לוח בקרה */}
         <aside className="w-80 shrink-0 border-l border-cream-200 bg-white">
           <ControlPanel
@@ -348,6 +406,8 @@ export default function App() {
             </div>
           )}
         </main>
+        </>
+        )}
       </div>
     </div>
   )
