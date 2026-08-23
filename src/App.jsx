@@ -25,6 +25,7 @@ export default function App() {
   const [status, setStatus] = useState('')
   const [recording, setRecording] = useState(false)
   const [captures, setCaptures] = useState([]) // הדמיות שצולמו לפרוספקט
+  const [paneFocus, setPaneFocus] = useState('split') // split | studio | prospectus
   const glRef = useRef(null)
 
   const update = useCallback((patch) => setSettings((s) => ({ ...s, ...patch })), [])
@@ -275,24 +276,24 @@ export default function App() {
           </div>
           <div>
             <h1 className="text-lg font-bold leading-tight text-navy-900">
-              מחולל הדמיות ספרים <span className="align-middle text-[10px] font-bold text-emerald-600">v12</span>
+              מחולל הדמיות ספרים <span className="align-middle text-[10px] font-bold text-emerald-600">v13</span>
             </h1>
             <p className="text-xs text-navy-500">הדמיות תלת-ממד ופרוספקטים לספרים עבריים · RTL</p>
           </div>
         </div>
 
-        {/* מתגי מצב */}
+        {/* בורר תצוגה — סטודיו / מפוצל / פרוספקט (הכל בדף אחד; שום דבר לא נמחק) */}
         <div className="flex rounded-2xl bg-cream-100 p-1">
           {[
-            { id: 'closed', label: '📕 ספר סגור' },
-            { id: 'open', label: '📖 ספר פתוח' },
-            { id: 'prospectus', label: '🧾 פרוספקט' },
+            { id: 'studio', label: 'סטודיו' },
+            { id: 'split', label: 'מפוצל' },
+            { id: 'prospectus', label: 'פרוספקט' },
           ].map((m) => (
             <button
               key={m.id}
-              onClick={() => update({ mode: m.id })}
+              onClick={() => setPaneFocus(m.id)}
               className={`rounded-xl px-3.5 py-1.5 text-sm font-bold transition-all ${
-                settings.mode === m.id ? 'bg-white text-navy-900 shadow' : 'text-navy-500 hover:text-navy-700'
+                paneFocus === m.id ? 'bg-white text-navy-900 shadow' : 'text-navy-500 hover:text-navy-700'
               }`}
             >
               {m.label}
@@ -301,7 +302,7 @@ export default function App() {
         </div>
 
         <div className="flex items-center gap-2">
-          {settings.mode !== 'prospectus' && hasContent && (
+          {hasContent && (
             <button
               onClick={captureForProspectus}
               title="צלם את ההדמיה הנוכחית והוסף אותה לפרוספקט"
@@ -310,30 +311,22 @@ export default function App() {
               📸 צלם לפרוספקט{captures.length > 0 ? ` (${captures.length})` : ''}
             </button>
           )}
-          {settings.mode !== 'prospectus' && (
-            <button
-              onClick={exportPng}
-              disabled={!hasContent}
-              className="btn-primary bg-navy-800 hover:bg-navy-700 focus:ring-navy-500 disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M12 4v12m0 0l-4-4m4 4l4-4M4 18v1a1 1 0 001 1h14a1 1 0 001-1v-1" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-              הורד תמונה
-            </button>
-          )}
+          <button
+            onClick={exportPng}
+            disabled={!hasContent}
+            className="btn-primary bg-navy-800 hover:bg-navy-700 focus:ring-navy-500 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M12 4v12m0 0l-4-4m4 4l4-4M4 18v1a1 1 0 001 1h14a1 1 0 001-1v-1" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            הורד תמונה
+          </button>
         </div>
       </header>
 
       <div className="flex min-h-0 flex-1">
-        {settings.mode === 'prospectus' ? (
-          <main className="relative min-w-0 flex-1">
-            <Prospectus captures={captures} onClearCaptures={() => setCaptures([])} logo={assets.frontCropped || assets.frontRaw || null} />
-          </main>
-        ) : (
-        <>
-        {/* לוח בקרה */}
-        <aside className="w-80 shrink-0 border-l border-cream-200 bg-white">
+        {/* לוח בקרה של הסטודיו */}
+        <aside className={`w-80 shrink-0 overflow-hidden border-l border-cream-200 bg-white ${paneFocus === 'prospectus' ? 'hidden' : ''}`}>
           <ControlPanel
             settings={settings}
             update={update}
@@ -350,8 +343,8 @@ export default function App() {
           />
         </aside>
 
-        {/* אזור התצוגה */}
-        <main className="relative min-w-0 flex-1">
+        {/* אזור הסטודיו (הדמיה תלת-ממד) */}
+        <main className={`relative min-w-0 ${paneFocus === 'prospectus' ? 'hidden' : paneFocus === 'studio' ? 'flex-1' : 'flex-1'}`}>
           {hasContent ? (
             <Stage
               settings={settings}
@@ -406,8 +399,11 @@ export default function App() {
             </div>
           )}
         </main>
-        </>
-        )}
+
+        {/* אזור הפרוספקט — תמיד קיים; המצב נשמר גם כשעוברים פוקוס */}
+        <section className={`flex min-w-0 flex-col ${paneFocus === 'studio' ? 'hidden' : 'flex-1'}`}>
+          <Prospectus captures={captures} logo={assets.frontCropped || assets.frontRaw || null} />
+        </section>
       </div>
     </div>
   )

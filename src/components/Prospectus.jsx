@@ -39,7 +39,7 @@ const BG_STYLES = {
 let idc = 1
 const uid = () => `el_${idc++}`
 
-export default function Prospectus({ captures, onClearCaptures, logo }) {
+export default function Prospectus({ captures, logo }) {
   const [els, setEls] = useState([])
   const [sel, setSel] = useState(null)
   const [bg, setBg] = useState('parchment')
@@ -163,83 +163,58 @@ export default function Prospectus({ captures, onClearCaptures, logo }) {
   const selEl = els.find((e) => e.id === sel)
 
   return (
-    <div className="flex h-full min-h-0">
-      {/* לוח כלים של הפרוספקט */}
-      <aside className="flex w-72 shrink-0 flex-col overflow-y-auto border-l border-cream-200 bg-white">
-        <div className="border-b border-cream-200 px-4 py-3">
-          <h3 className="text-sm font-bold text-navy-900">🧾 עורך הפרוספקט</h3>
-          <p className="mt-1 text-[11px] text-navy-500">הוסף הדמיות שצילמת + טקסט, סדר, וייצא.</p>
-        </div>
+    <div className="flex h-full min-h-0 flex-col">
+      {/* סרגל עליון קומפקטי */}
+      <div className="flex flex-wrap items-center gap-2 border-b border-cream-200 bg-white px-3 py-2">
+        <span className="text-sm font-bold text-navy-900">🧾 פרוספקט</span>
 
-        {/* הדמיות שצולמו */}
-        <div className="border-b border-cream-200 px-4 py-3">
-          <div className="mb-2 flex items-center justify-between">
-            <span className="text-xs font-bold text-navy-800">הדמיות שצולמו ({captures.length})</span>
-            {captures.length > 0 && (
-              <button onClick={onClearCaptures} className="text-[11px] text-navy-400 hover:text-navy-700">נקה</button>
-            )}
-          </div>
+        {/* הדמיות שצולמו — לחיצה מוסיפה לקנבס */}
+        <div className="flex max-w-[38%] items-center gap-1 overflow-x-auto">
           {captures.length === 0 ? (
-            <p className="rounded-lg bg-cream-50 p-2 text-[11px] text-navy-500">
-              עבור למצב "ספר סגור" או "ספר פתוח", סדר זווית ורקע, ולחץ <b>📸 צלם לפרוספקט</b>. ההדמיות יופיעו כאן.
-            </p>
+            <span className="whitespace-nowrap text-[11px] text-navy-400">צלם הדמיות בסטודיו ← יופיעו כאן</span>
           ) : (
-            <div className="grid grid-cols-3 gap-2">
-              {captures.map((c, i) => (
-                <button key={i} onClick={() => addImage(c)} title="הוסף לקנבס"
-                  className="overflow-hidden rounded-lg border border-cream-200 bg-cream-50 p-1 hover:ring-2 hover:ring-navy-400">
-                  <img src={c} alt="" className="h-14 w-full object-contain" />
-                </button>
-              ))}
-            </div>
+            captures.map((c, i) => (
+              <button key={i} onClick={() => addImage(c)} title="הוסף לקנבס"
+                className="shrink-0 rounded border border-cream-200 bg-cream-50 p-0.5 hover:ring-2 hover:ring-navy-400">
+                <img src={c} alt="" className="h-9 w-8 object-contain" />
+              </button>
+            ))
           )}
           {logo && (
-            <button onClick={() => addImage(logo)} className="mt-2 w-full rounded-lg bg-cream-100 py-1.5 text-xs font-medium text-navy-700 hover:bg-cream-200">
-              ➕ הוסף לוגו
-            </button>
+            <button onClick={() => addImage(logo)} title="הוסף לוגו"
+              className="shrink-0 rounded border border-cream-200 bg-cream-100 px-2 py-1 text-[11px] font-medium text-navy-700 hover:bg-cream-200">לוגו</button>
           )}
         </div>
 
-        {/* טקסט */}
-        <div className="border-b border-cream-200 px-4 py-3">
-          <span className="mb-2 block text-xs font-bold text-navy-800">טקסט</span>
-          <div className="flex flex-col gap-1.5">
-            <button onClick={() => addText('title')} className="rounded-lg bg-cream-100 py-1.5 text-xs font-semibold text-navy-800 hover:bg-cream-200">➕ כותרת ראשית</button>
-            <button onClick={() => addText('sub')} className="rounded-lg bg-cream-100 py-1.5 text-xs text-navy-700 hover:bg-cream-200">➕ כותרת משנה</button>
-            <button onClick={() => addText('body')} className="rounded-lg bg-cream-100 py-1.5 text-xs text-navy-700 hover:bg-cream-200">➕ פסקת תוכן</button>
-          </div>
-        </div>
+        <div className="h-6 w-px bg-cream-200" />
+        <button onClick={() => addText('title')} className="rounded-lg bg-cream-100 px-2.5 py-1 text-xs font-semibold text-navy-800 hover:bg-cream-200">➕ כותרת</button>
+        <button onClick={() => addText('sub')} className="rounded-lg bg-cream-100 px-2.5 py-1 text-xs text-navy-700 hover:bg-cream-200">➕ משנה</button>
+        <button onClick={() => addText('body')} className="rounded-lg bg-cream-100 px-2.5 py-1 text-xs text-navy-700 hover:bg-cream-200">➕ תוכן</button>
 
-        {/* רקע */}
-        <div className="border-b border-cream-200 px-4 py-3">
-          <span className="mb-2 block text-xs font-bold text-navy-800">רקע הפרוספקט</span>
-          <div className="flex flex-wrap gap-1.5">
-            {Object.entries(BG_STYLES).map(([k, v]) => (
-              <button key={k} onClick={() => setBg(k)}
-                className={`rounded-lg px-2.5 py-1 text-[11px] font-medium ${bg === k ? 'bg-navy-800 text-white' : 'bg-cream-100 text-navy-700 hover:bg-cream-200'}`}>
-                {v.label}
-              </button>
-            ))}
-          </div>
-        </div>
+        <div className="h-6 w-px bg-cream-200" />
+        <select value={bg} onChange={(e) => setBg(e.target.value)} className="rounded-lg bg-cream-100 px-2 py-1 text-xs text-navy-800">
+          {Object.entries(BG_STYLES).map(([k, v]) => (
+            <option key={k} value={k}>{v.label}</option>
+          ))}
+        </select>
 
-        {/* ייצוא */}
-        <div className="mt-auto border-t border-cream-200 px-4 py-3">
-          <div className="grid grid-cols-2 gap-2">
-            <button onClick={() => exportImage('png')} disabled={!els.length || exporting}
-              className="rounded-xl bg-navy-800 py-2 text-xs font-bold text-white hover:bg-navy-700 disabled:opacity-40">
-              {exporting ? '…' : '⬇ PNG'}
-            </button>
-            <button onClick={() => exportImage('pdf')} disabled={!els.length || exporting}
-              className="rounded-xl border-2 border-navy-800 py-2 text-xs font-bold text-navy-800 hover:bg-cream-50 disabled:opacity-40">
-              ⬇ PDF
-            </button>
-          </div>
+        <div className="mr-auto flex items-center gap-1.5">
+          {els.length > 0 && (
+            <button onClick={() => { setEls([]); setSel(null) }} className="rounded-lg px-2 py-1 text-xs text-navy-400 hover:text-red-600" title="נקה קנבס">נקה</button>
+          )}
+          <button onClick={() => exportImage('png')} disabled={!els.length || exporting}
+            className="rounded-lg bg-navy-800 px-3 py-1.5 text-xs font-bold text-white hover:bg-navy-700 disabled:opacity-40">
+            {exporting ? '…' : '⬇ PNG'}
+          </button>
+          <button onClick={() => exportImage('pdf')} disabled={!els.length || exporting}
+            className="rounded-lg border-2 border-navy-800 px-3 py-1 text-xs font-bold text-navy-800 hover:bg-cream-50 disabled:opacity-40">
+            ⬇ PDF
+          </button>
         </div>
-      </aside>
+      </div>
 
       {/* אזור הקנבס */}
-      <div ref={wrapRef} className="relative flex flex-1 items-center justify-center overflow-hidden bg-cream-100 p-6">
+      <div ref={wrapRef} className="relative flex flex-1 items-center justify-center overflow-hidden bg-cream-100 p-4">
         {/* פאנל מאפיינים לאלמנט נבחר */}
         {selEl && (
           <ElementPanel el={selEl} update={(p) => update1(selEl.id, p)} remove={() => remove1(selEl.id)} move={(d) => move(selEl.id, d)} />

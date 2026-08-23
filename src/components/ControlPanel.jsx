@@ -203,6 +203,26 @@ export default function ControlPanel({ settings, update, assets, marks = {}, has
 
   return (
     <div className="flex h-full flex-col overflow-y-auto">
+      {/* סוג ההדמיה בסטודיו */}
+      <div className="sticky top-0 z-10 bg-white/95 px-5 py-3 backdrop-blur">
+        <div className="grid grid-cols-2 gap-2 rounded-2xl bg-cream-100 p-1">
+          {[
+            { id: 'closed', label: '📕 ספר סגור' },
+            { id: 'open', label: '📖 ספר פתוח' },
+          ].map((m) => (
+            <button
+              key={m.id}
+              onClick={() => update({ mode: m.id })}
+              className={`rounded-xl py-2 text-sm font-bold transition-all ${
+                settings.mode === m.id ? 'bg-white text-navy-900 shadow' : 'text-navy-500'
+              }`}
+            >
+              {m.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
       {/* העלאות */}
       {isClosed ? (
         <Section title="קבצי הכריכה" icon="🖼️">
