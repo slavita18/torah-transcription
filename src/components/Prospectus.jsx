@@ -39,14 +39,25 @@ const BG_STYLES = {
 let idc = 1
 const uid = () => `el_${idc++}`
 
-export default function Prospectus({ captures, logo }) {
+export default function Prospectus({ captures }) {
   const [els, setEls] = useState([])
   const [sel, setSel] = useState(null)
   const [bg, setBg] = useState('parchment')
   const [exporting, setExporting] = useState(false)
+  const [logoSrc, setLogoSrc] = useState(null)
+  const logoInput = useRef(null)
   const stageRef = useRef(null)
   const wrapRef = useRef(null)
   const [fit, setFit] = useState(1)
+
+  const onLogoFile = (e) => {
+    const f = e.target.files?.[0]
+    if (!f) return
+    const rd = new FileReader()
+    rd.onload = () => { setLogoSrc(rd.result); addImage(rd.result, 20) }
+    rd.readAsDataURL(f)
+    e.target.value = ''
+  }
 
   // התאמת הקנבס לגובה החלון
   useEffect(() => {
@@ -61,14 +72,13 @@ export default function Prospectus({ captures, logo }) {
     return () => window.removeEventListener('resize', calc)
   }, [])
 
-  const addImage = (src) => {
+  const addImage = (src, wPct = 34) => {
     const img = new Image()
     img.onload = () => {
       const aspect = img.naturalWidth / img.naturalHeight
-      const wPct = 34
       setEls((e) => [
         ...e,
-        { id: uid(), type: 'image', src, aspect, xPct: 33, yPct: 30, wPct, rot: 0 },
+        { id: uid(), type: 'image', src, aspect, xPct: (100 - wPct) / 2, yPct: 30, wPct, rot: 0 },
       ])
     }
     img.src = src
@@ -180,11 +190,14 @@ export default function Prospectus({ captures, logo }) {
               </button>
             ))
           )}
-          {logo && (
-            <button onClick={() => addImage(logo)} title="הוסף לוגו"
-              className="shrink-0 rounded border border-cream-200 bg-cream-100 px-2 py-1 text-[11px] font-medium text-navy-700 hover:bg-cream-200">לוגו</button>
-          )}
         </div>
+
+        <div className="h-6 w-px bg-cream-200" />
+        <input ref={logoInput} type="file" accept="image/*" className="hidden" onChange={onLogoFile} />
+        <button onClick={() => logoInput.current?.click()} className="rounded-lg bg-cream-100 px-2.5 py-1 text-xs text-navy-800 hover:bg-cream-200" title="העלה לוגו">⬆ לוגו</button>
+        {logoSrc && (
+          <button onClick={() => addImage(logoSrc, 20)} className="rounded-lg bg-cream-100 px-2 py-1 text-xs text-navy-700 hover:bg-cream-200" title="הוסף את הלוגו שוב">➕</button>
+        )}
 
         <div className="h-6 w-px bg-cream-200" />
         <button onClick={() => addText('title')} className="rounded-lg bg-cream-100 px-2.5 py-1 text-xs font-semibold text-navy-800 hover:bg-cream-200">➕ כותרת</button>
@@ -320,6 +333,29 @@ function ElementPanel({ el, update, remove, move }) {
           </div>
         </>
       )}
+      {/* מיקום מהיר */}
+      <div className="mb-2">
+        <span className="mb-1 block text-[11px] text-navy-500">מיקום מהיר</span>
+        <div className="grid grid-cols-3 gap-1">
+          {[
+            { k: 'tr', l: '↗', x: 100 - el.wPct - 4, y: 5 },
+            { k: 'tc', l: '⬆', x: (100 - el.wPct) / 2, y: 5 },
+            { k: 'tl', l: '↖', x: 4, y: 5 },
+            { k: 'cr', l: '→', x: 100 - el.wPct - 4, y: 42 },
+            { k: 'cc', l: '●', x: (100 - el.wPct) / 2, y: 42 },
+            { k: 'cl', l: '←', x: 4, y: 42 },
+            { k: 'br', l: '↘', x: 100 - el.wPct - 4, y: 80 },
+            { k: 'bc', l: '⬇', x: (100 - el.wPct) / 2, y: 80 },
+            { k: 'bl', l: '↙', x: 4, y: 80 },
+          ].map((p) => (
+            <button key={p.k} onClick={() => update({ xPct: p.x, yPct: p.y })}
+              className="rounded bg-cream-100 py-1 text-navy-700 hover:bg-navy-800 hover:text-white">{p.l}</button>
+          ))}
+        </div>
+      </div>
+      <label className="mb-2 block">גודל
+        <input type="range" min="6" max="95" value={Math.round(el.wPct)} onChange={(e) => update({ wPct: +e.target.value })} className="w-full accent-navy-700" />
+      </label>
       <label className="mb-2 block">סיבוב
         <input type="range" min="-30" max="30" value={el.rot || 0} onChange={(e) => update({ rot: +e.target.value })} className="w-full accent-navy-700" />
       </label>
