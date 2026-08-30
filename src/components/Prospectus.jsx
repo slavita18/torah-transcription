@@ -72,16 +72,40 @@ export default function Prospectus({ captures }) {
     return () => window.removeEventListener('resize', calc)
   }, [])
 
-  const addImage = (src, wPct = 34) => {
+  const addImage = (src, wPct = 34, pos = null) => {
     const img = new Image()
     img.onload = () => {
       const aspect = img.naturalWidth / img.naturalHeight
       setEls((e) => [
         ...e,
-        { id: uid(), type: 'image', src, aspect, xPct: (100 - wPct) / 2, yPct: 30, wPct, rot: 0 },
+        {
+          id: uid(), type: 'image', src, aspect, rot: 0, shadow: true,
+          xPct: pos ? pos.xPct : (100 - wPct) / 2,
+          yPct: pos ? pos.yPct : 30,
+          wPct,
+        },
       ])
     }
     img.src = src
+  }
+
+  const addRule = () =>
+    setEls((e) => [...e, { id: uid(), type: 'rule', xPct: 30, yPct: 50, wPct: 40, rot: 0, color: BG_STYLES[bg].frame }])
+
+  // תבנית מקצועית: דף ספר בודד בשפת סלאוויטא
+  const applyTemplate = () => {
+    setSel(null)
+    const ink = BG_STYLES[bg].ink
+    const gold = BG_STYLES[bg].frame
+    setEls([
+      { id: uid(), type: 'text', text: 'שם הספר', xPct: 12, yPct: 6, wPct: 76, rot: 0, fontSize: 58, weight: 700, family: "'Frank Ruhl Libre', serif", color: ink, align: 'center' },
+      { id: uid(), type: 'text', text: 'על התורה והמועדים', xPct: 15, yPct: 16, wPct: 70, rot: 0, fontSize: 26, weight: 500, family: "'Frank Ruhl Libre', serif", color: ink, align: 'center' },
+      { id: uid(), type: 'rule', xPct: 34, yPct: 22, wPct: 32, rot: 0, color: gold },
+      { id: uid(), type: 'text', text: 'כאן הטקסט שלך על תוכן הספר — תיאור, מעלות, הסכמות ועוד.\nלחיצה כפולה לעריכה.', xPct: 53, yPct: 58, wPct: 40, rot: 0, fontSize: 19, weight: 400, family: "'Heebo', sans-serif", color: ink, align: 'right' },
+    ])
+    if (captures[0]) addImage(captures[0], 40, { xPct: 30, yPct: 26 })
+    if (captures[1]) addImage(captures[1], 44, { xPct: 6, yPct: 55 })
+    if (logoSrc) addImage(logoSrc, 15, { xPct: 42, yPct: 90 })
   }
 
   const addText = (preset) => {
@@ -200,9 +224,11 @@ export default function Prospectus({ captures }) {
         )}
 
         <div className="h-6 w-px bg-cream-200" />
+        <button onClick={applyTemplate} className="rounded-lg bg-amber-100 px-2.5 py-1 text-xs font-bold text-amber-800 hover:bg-amber-200" title="פריסת דף-ספר מוכנה">✨ תבנית</button>
         <button onClick={() => addText('title')} className="rounded-lg bg-cream-100 px-2.5 py-1 text-xs font-semibold text-navy-800 hover:bg-cream-200">➕ כותרת</button>
         <button onClick={() => addText('sub')} className="rounded-lg bg-cream-100 px-2.5 py-1 text-xs text-navy-700 hover:bg-cream-200">➕ משנה</button>
         <button onClick={() => addText('body')} className="rounded-lg bg-cream-100 px-2.5 py-1 text-xs text-navy-700 hover:bg-cream-200">➕ תוכן</button>
+        <button onClick={addRule} className="rounded-lg bg-cream-100 px-2.5 py-1 text-xs text-navy-700 hover:bg-cream-200">➕ קו זהב</button>
 
         <div className="h-6 w-px bg-cream-200" />
         <select value={bg} onChange={(e) => setBg(e.target.value)} className="rounded-lg bg-cream-100 px-2 py-1 text-xs text-navy-800">
@@ -247,8 +273,23 @@ export default function Prospectus({ captures }) {
             }}
           >
             {/* מסגרת זהב כפולה + יהלומי פינה */}
+            {/* זוהר עליון + זוהר זהב תחתון */}
+            <div style={{ position: 'absolute', inset: 0, background: `radial-gradient(60% 42% at 50% 96%, ${style.frame}22, transparent 70%)`, pointerEvents: 'none' }} />
+            {/* ויניֶיטה עדינה בקצוות */}
+            <div style={{ position: 'absolute', inset: 0, boxShadow: 'inset 0 0 120px rgba(60,40,10,0.14)', pointerEvents: 'none' }} />
+            {/* מסגרת זהב כפולה */}
             <div style={{ position: 'absolute', inset: 20, border: `2px solid ${style.frame}`, borderRadius: 6, pointerEvents: 'none' }} />
             <div style={{ position: 'absolute', inset: 26, border: `1px solid ${style.frame}88`, borderRadius: 4, pointerEvents: 'none' }} />
+            {/* יהלומי פינה */}
+            {[[20, 20], [20, 'r'], ['b', 20], ['b', 'r']].map(([v, h], i) => (
+              <div key={i} style={{
+                position: 'absolute',
+                width: 10, height: 10, background: style.frame, transform: 'rotate(45deg)',
+                top: v === 'b' ? undefined : 15, bottom: v === 'b' ? 15 : undefined,
+                left: h === 'r' ? undefined : 15, right: h === 'r' ? 15 : undefined,
+                pointerEvents: 'none',
+              }} />
+            ))}
 
             {els.map((el) => (
               <ElementView
@@ -279,7 +320,24 @@ function ElementView({ el, selected, onDown, onText }) {
   return (
     <div style={common} onPointerDown={(e) => onDown(e, el, 'move')}>
       {el.type === 'image' ? (
-        <img src={el.src} alt="" draggable={false} style={{ width: '100%', display: 'block', pointerEvents: 'none' }} />
+        <img
+          src={el.src}
+          alt=""
+          draggable={false}
+          style={{
+            width: '100%',
+            display: 'block',
+            pointerEvents: 'none',
+            borderRadius: 3,
+            boxShadow: el.shadow === false ? 'none' : '0 16px 26px -8px rgba(30,20,5,0.42)',
+          }}
+        />
+      ) : el.type === 'rule' ? (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, pointerEvents: 'none' }}>
+          <div style={{ flex: 1, height: 2, background: `linear-gradient(90deg, transparent, ${el.color}, transparent)` }} />
+          <div style={{ width: 8, height: 8, background: el.color, transform: 'rotate(45deg)' }} />
+          <div style={{ flex: 1, height: 2, background: `linear-gradient(90deg, transparent, ${el.color}, transparent)` }} />
+        </div>
       ) : (
         <div
           contentEditable
@@ -332,6 +390,12 @@ function ElementPanel({ el, update, remove, move }) {
             </select>
           </div>
         </>
+      )}
+      {el.type === 'image' && (
+        <label className="mb-2 flex items-center gap-2">
+          <input type="checkbox" checked={el.shadow !== false} onChange={(e) => update({ shadow: e.target.checked })} className="h-4 w-4 accent-navy-700" />
+          צל רך
+        </label>
       )}
       {/* מיקום מהיר */}
       <div className="mb-2">
