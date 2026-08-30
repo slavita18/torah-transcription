@@ -6,8 +6,12 @@ import jsPDF from 'jspdf'
    רקע קלף חמים + מסגרת זהב, ומוסיפים אליו הדמיות שצולמו + בלוקי טקסט.
    ניתן לגרור, לשנות גודל, לערוך טקסט, ולייצא PNG/PDF. */
 
-const BASE_W = 794 // A4 @96dpi
-const BASE_H = 1123
+// גדלי קנבס (פיקסלים לעריכה; ייצוא מוכפל x2)
+const SIZES = {
+  a4p: { w: 794, h: 1123, label: 'A4 לאורך' },
+  a4l: { w: 1123, h: 794, label: 'A4 לרוחב' },
+  landscape: { w: 1400, h: 990, label: 'כפולה רחבה' },
+}
 
 const BG_STYLES = {
   parchment: {
@@ -39,12 +43,15 @@ const BG_STYLES = {
 let idc = 1
 const uid = () => `el_${idc++}`
 
-export default function Prospectus({ captures }) {
+export default function Prospectus({ captures, pages = [], cover = null }) {
   const [els, setEls] = useState([])
   const [sel, setSel] = useState(null)
   const [bg, setBg] = useState('parchment')
+  const [size, setSize] = useState('a4p')
   const [exporting, setExporting] = useState(false)
   const [logoSrc, setLogoSrc] = useState(null)
+  const CW = SIZES[size].w
+  const CH = SIZES[size].h
   const logoInput = useRef(null)
   const stageRef = useRef(null)
   const wrapRef = useRef(null)
@@ -65,23 +72,26 @@ export default function Prospectus({ captures }) {
       if (!wrapRef.current) return
       const aw = wrapRef.current.clientWidth - 48
       const ah = wrapRef.current.clientHeight - 48
-      setFit(Math.max(0.2, Math.min(aw / BASE_W, ah / BASE_H)))
+      setFit(Math.max(0.2, Math.min(aw / CW, ah / CH)))
     }
     calc()
     window.addEventListener('resize', calc)
     return () => window.removeEventListener('resize', calc)
-  }, [])
+  }, [CW, CH])
 
-  const addImage = (src, wPct = 34, pos = null) => {
+  const addImage = (src, wPct = 34, opts = {}) => {
     const img = new Image()
     img.onload = () => {
       const aspect = img.naturalWidth / img.naturalHeight
       setEls((e) => [
         ...e,
         {
-          id: uid(), type: 'image', src, aspect, rot: 0, shadow: true,
-          xPct: pos ? pos.xPct : (100 - wPct) / 2,
-          yPct: pos ? pos.yPct : 30,
+          id: uid(), type: 'image', src, aspect,
+          rot: opts.rot || 0,
+          shadow: opts.shadow !== false,
+          card: !!opts.card,
+          xPct: opts.xPct != null ? opts.xPct : (100 - wPct) / 2,
+          yPct: opts.yPct != null ? opts.yPct : 30,
           wPct,
         },
       ])
@@ -92,20 +102,29 @@ export default function Prospectus({ captures }) {
   const addRule = () =>
     setEls((e) => [...e, { id: uid(), type: 'rule', xPct: 30, yPct: 50, wPct: 40, rot: 0, color: BG_STYLES[bg].frame }])
 
-  // תבנית מקצועית: דף ספר בודד בשפת סלאוויטא
+  // תבנית קטלוג סלאוויטא — דף ספר בודד לאורך. רק מעלים פריטים והכל מסתדר.
   const applyTemplate = () => {
     setSel(null)
     const ink = BG_STYLES[bg].ink
     const gold = BG_STYLES[bg].frame
     setEls([
-      { id: uid(), type: 'text', text: 'שם הספר', xPct: 12, yPct: 6, wPct: 76, rot: 0, fontSize: 58, weight: 700, family: "'Frank Ruhl Libre', serif", color: ink, align: 'center' },
-      { id: uid(), type: 'text', text: 'על התורה והמועדים', xPct: 15, yPct: 16, wPct: 70, rot: 0, fontSize: 26, weight: 500, family: "'Frank Ruhl Libre', serif", color: ink, align: 'center' },
-      { id: uid(), type: 'rule', xPct: 34, yPct: 22, wPct: 32, rot: 0, color: gold },
-      { id: uid(), type: 'text', text: 'כאן הטקסט שלך על תוכן הספר — תיאור, מעלות, הסכמות ועוד.\nלחיצה כפולה לעריכה.', xPct: 53, yPct: 58, wPct: 40, rot: 0, fontSize: 19, weight: 400, family: "'Heebo', sans-serif", color: ink, align: 'right' },
+      { id: uid(), type: 'text', text: 'שם הספר', xPct: 10, yPct: 4, wPct: 80, rot: 0, fontSize: 56, weight: 700, family: "'Frank Ruhl Libre', serif", color: ink, align: 'center' },
+      { id: uid(), type: 'text', text: 'על התורה והמועדים', xPct: 15, yPct: 12.5, wPct: 70, rot: 0, fontSize: 23, weight: 500, family: "'Frank Ruhl Libre', serif", color: ink, align: 'center' },
+      { id: uid(), type: 'rule', xPct: 35, yPct: 17.5, wPct: 30, rot: 0, color: gold },
+      { id: uid(), type: 'text', panel: 'parchment', text: 'כאן הטקסט שלך על תוכן הספר — תיאור, מעלות הספר, הסכמות ועוד. לחיצה כפולה לעריכה.', xPct: 12, yPct: 47, wPct: 76, rot: 0, fontSize: 18, weight: 400, family: "'Heebo', sans-serif", color: '#3a2a12', align: 'right' },
+      { id: uid(), type: 'text', panel: 'gold', text: 'עיצוב · עימוד · דפוס', xPct: 6, yPct: 92, wPct: 26, rot: 0, fontSize: 15, weight: 700, family: "'Frank Ruhl Libre', serif", color: '#3a2a12', align: 'center' },
     ])
-    if (captures[0]) addImage(captures[0], 40, { xPct: 30, yPct: 26 })
-    if (captures[1]) addImage(captures[1], 44, { xPct: 6, yPct: 55 })
-    if (logoSrc) addImage(logoSrc, 15, { xPct: 42, yPct: 90 })
+    // ספר סגור (הירו) — צילום ראשון או הכריכה
+    const hero = captures[0] || cover
+    if (hero) addImage(hero, 32, { xPct: 34, yPct: 19 })
+    // כרטיסי-דף (עמודי פנים) משני צדי הספר
+    if (pages[0]) addImage(pages[0], 23, { xPct: 5, yPct: 21, rot: -4, card: true })
+    if (pages[1]) addImage(pages[1], 23, { xPct: 72, yPct: 21, rot: 4, card: true })
+    // ספר פתוח (צילום שני) או עוד כרטיס-דף
+    if (captures[1]) addImage(captures[1], 60, { xPct: 20, yPct: 62 })
+    else if (pages[2]) addImage(pages[2], 26, { xPct: 37, yPct: 63, rot: -2, card: true })
+    // לוגו
+    if (logoSrc) addImage(logoSrc, 18, { xPct: 72, yPct: 90.5 })
   }
 
   const addText = (preset) => {
@@ -145,8 +164,8 @@ export default function Prospectus({ captures }) {
   const onDragMove = (e) => {
     const d = dragRef.current
     if (!d) return
-    const dxPct = ((e.clientX - d.startX) / fit / BASE_W) * 100
-    const dyPct = ((e.clientY - d.startY) / fit / BASE_H) * 100
+    const dxPct = ((e.clientX - d.startX) / fit / CW) * 100
+    const dyPct = ((e.clientY - d.startY) / fit / CH) * 100
     if (d.mode === 'move') {
       update1(d.id, { xPct: d.xPct + dxPct, yPct: d.yPct + dyPct })
     } else {
@@ -171,14 +190,17 @@ export default function Prospectus({ captures }) {
         backgroundColor: null,
         useCORS: true,
         logging: false,
-        width: BASE_W,
-        height: BASE_H,
-        windowWidth: BASE_W,
-        windowHeight: BASE_H,
+        width: CW,
+        height: CH,
+        windowWidth: CW,
+        windowHeight: CH,
       })
       if (type === 'pdf') {
-        const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
-        pdf.addImage(canvas.toDataURL('image/jpeg', 0.95), 'JPEG', 0, 0, 210, 297)
+        const landscapeMode = CW > CH
+        const pdf = new jsPDF({ orientation: landscapeMode ? 'landscape' : 'portrait', unit: 'mm', format: 'a4' })
+        const pw = landscapeMode ? 297 : 210
+        const ph = landscapeMode ? 210 : 297
+        pdf.addImage(canvas.toDataURL('image/jpeg', 0.95), 'JPEG', 0, 0, pw, ph)
         pdf.save(`prospectus-${Date.now()}.pdf`)
       } else {
         const a = document.createElement('a')
@@ -224,14 +246,18 @@ export default function Prospectus({ captures }) {
         )}
 
         <div className="h-6 w-px bg-cream-200" />
-        <button onClick={applyTemplate} className="rounded-lg bg-amber-100 px-2.5 py-1 text-xs font-bold text-amber-800 hover:bg-amber-200" title="פריסת דף-ספר מוכנה">✨ תבנית</button>
+        <button onClick={applyTemplate} className="rounded-lg bg-amber-100 px-2.5 py-1 text-xs font-bold text-amber-800 hover:bg-amber-200" title="תבנית קטלוג — דף ספר מוכן">📖 תבנית קטלוג</button>
         <button onClick={() => addText('title')} className="rounded-lg bg-cream-100 px-2.5 py-1 text-xs font-semibold text-navy-800 hover:bg-cream-200">➕ כותרת</button>
-        <button onClick={() => addText('sub')} className="rounded-lg bg-cream-100 px-2.5 py-1 text-xs text-navy-700 hover:bg-cream-200">➕ משנה</button>
         <button onClick={() => addText('body')} className="rounded-lg bg-cream-100 px-2.5 py-1 text-xs text-navy-700 hover:bg-cream-200">➕ תוכן</button>
         <button onClick={addRule} className="rounded-lg bg-cream-100 px-2.5 py-1 text-xs text-navy-700 hover:bg-cream-200">➕ קו זהב</button>
 
         <div className="h-6 w-px bg-cream-200" />
-        <select value={bg} onChange={(e) => setBg(e.target.value)} className="rounded-lg bg-cream-100 px-2 py-1 text-xs text-navy-800">
+        <select value={size} onChange={(e) => setSize(e.target.value)} className="rounded-lg bg-cream-100 px-2 py-1 text-xs text-navy-800" title="גודל/כיוון">
+          {Object.entries(SIZES).map(([k, v]) => (
+            <option key={k} value={k}>{v.label}</option>
+          ))}
+        </select>
+        <select value={bg} onChange={(e) => setBg(e.target.value)} className="rounded-lg bg-cream-100 px-2 py-1 text-xs text-navy-800" title="רקע">
           {Object.entries(BG_STYLES).map(([k, v]) => (
             <option key={k} value={k}>{v.label}</option>
           ))}
@@ -264,8 +290,8 @@ export default function Prospectus({ captures }) {
             ref={stageRef}
             onPointerDown={() => setSel(null)}
             style={{
-              width: BASE_W,
-              height: BASE_H,
+              width: CW,
+              height: CH,
               background: style.css,
               position: 'relative',
               overflow: 'hidden',
@@ -320,18 +346,17 @@ function ElementView({ el, selected, onDown, onText }) {
   return (
     <div style={common} onPointerDown={(e) => onDown(e, el, 'move')}>
       {el.type === 'image' ? (
-        <img
-          src={el.src}
-          alt=""
-          draggable={false}
+        <div
           style={{
-            width: '100%',
-            display: 'block',
-            pointerEvents: 'none',
-            borderRadius: 3,
+            padding: el.card ? '3.5%' : 0,
+            background: el.card ? '#fdfbf5' : 'transparent',
+            border: el.card ? '1px solid #e7dcc2' : 'none',
+            borderRadius: el.card ? 5 : 3,
             boxShadow: el.shadow === false ? 'none' : '0 16px 26px -8px rgba(30,20,5,0.42)',
           }}
-        />
+        >
+          <img src={el.src} alt="" draggable={false} style={{ width: '100%', display: 'block', pointerEvents: 'none' }} />
+        </div>
       ) : el.type === 'rule' ? (
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, pointerEvents: 'none' }}>
           <div style={{ flex: 1, height: 2, background: `linear-gradient(90deg, transparent, ${el.color}, transparent)` }} />
@@ -351,10 +376,27 @@ function ElementView({ el, selected, onDown, onText }) {
             fontWeight: el.weight,
             color: el.color,
             textAlign: el.align,
-            lineHeight: 1.35,
+            lineHeight: 1.4,
             outline: 'none',
             width: '100%',
             whiteSpace: 'pre-wrap',
+            ...(el.panel === 'parchment'
+              ? {
+                  background: 'linear-gradient(180deg,#fbf3df 0%,#f3e6c6 100%)',
+                  border: '1px solid #d8c496',
+                  borderRadius: 6,
+                  padding: '18px 22px',
+                  boxShadow: '0 10px 22px -10px rgba(60,40,10,0.35), inset 0 0 40px rgba(150,110,50,0.08)',
+                }
+              : el.panel === 'gold'
+                ? {
+                    background: 'linear-gradient(180deg,#f3e2b0 0%,#e4c778 100%)',
+                    border: '1px solid #b8902f',
+                    borderRadius: 999,
+                    padding: '8px 16px',
+                    boxShadow: '0 6px 14px -6px rgba(60,40,10,0.4)',
+                  }
+                : {}),
           }}
         >
           {el.text}
