@@ -17,7 +17,7 @@ export default function App() {
     frontRaw: null, frontCropped: null, frontMarks: false,
     backRaw: null, backCropped: null, backMarks: false,
     spineRaw: null, spineCropped: null, spineMarks: false,
-    spreadRaw: null, // פריסת כריכה אחת
+    spreadRaw: null, spreadCropped: null, // פריסת כריכה אחת (גולמי + חתוך ידנית)
     spreadFront: null, spreadBack: null, spreadSpine: null, // תוצרי הפיצול
     pagesRaw: [], pagesCropped: [], pagesMarks: false,
   })
@@ -37,6 +37,7 @@ export default function App() {
       front: assets.frontRaw,
       back: assets.backRaw,
       spine: assets.spineRaw,
+      spread: assets.spreadRaw,
       pages: assets.pagesRaw?.[0],
     }
     const src = rawByKind[kind]
@@ -61,6 +62,10 @@ export default function App() {
           out.push(await cropToFraction(assets.pagesRaw[i], box))
         }
         setAssets((a) => ({ ...a, pagesCropped: out, pagesMarks: true }))
+      } else if (kind === 'spread') {
+        // חיתוך הפריסה כולה לקו החיתוך — הפיצול לקדמי/שדרה/אחורי ירוץ על החתוך
+        const cropped = await cropToFraction(assets.spreadRaw, box)
+        setAssets((a) => ({ ...a, spreadCropped: cropped }))
       } else {
         const rawKey = `${kind}Raw`
         const cropped = await cropToFraction(assets[rawKey], box)
@@ -138,7 +143,7 @@ export default function App() {
     setStatus('מעבד פריסת כריכה…')
     try {
       const url = await readAsImage(file)
-      setAssets((a) => ({ ...a, spreadRaw: url }))
+      setAssets((a) => ({ ...a, spreadRaw: url, spreadCropped: null }))
       update({ coverInput: 'spread' })
     } catch (e) {
       setStatus('שגיאה בקריאת הקובץ')
@@ -164,7 +169,7 @@ export default function App() {
       cutA = coverW / total
       cutB = (coverW + spineW) / total
     }
-    splitCoverSpread(assets.spreadRaw, {
+    splitCoverSpread(assets.spreadCropped || assets.spreadRaw, {
       parts: settings.spreadParts,
       cutA,
       cutB,
@@ -178,7 +183,7 @@ export default function App() {
       cancelled = true
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [assets.spreadRaw, settings.coverInput, settings.spreadParts, settings.spreadCutA, settings.spreadCutB, settings.spreadSwap, settings.spineAuto, settings.width, settings.pageCount, settings.thicknessScale, settings.coverType])
+  }, [assets.spreadRaw, assets.spreadCropped, settings.coverInput, settings.spreadParts, settings.spreadCutA, settings.spreadCutB, settings.spreadSwap, settings.spineAuto, settings.width, settings.pageCount, settings.thicknessScale, settings.coverType])
 
   const onUploadBg = async (file) => {
     setBusy(true)
@@ -337,7 +342,7 @@ export default function App() {
           </div>
           <div>
             <h1 className="text-lg font-bold leading-tight text-navy-900">
-              מחולל הדמיות ספרים <span className="align-middle text-[10px] font-bold text-emerald-600">v21</span>
+              מחולל הדמיות ספרים <span className="align-middle text-[10px] font-bold text-emerald-600">v22</span>
             </h1>
             <p className="text-xs text-navy-500">הדמיות תלת-ממד ופרוספקטים לספרים עבריים · RTL</p>
           </div>
@@ -473,7 +478,7 @@ export default function App() {
         <CropEditor
           src={cropTarget.src}
           initial={cropTarget.initial}
-          title={{ front: 'חיתוך כריכה קדמית', back: 'חיתוך כריכה אחורית', spine: 'חיתוך שדרה', pages: 'חיתוך עמודי פנים (חל על כל העמודים)' }[cropTarget.kind]}
+          title={{ front: 'חיתוך כריכה קדמית', back: 'חיתוך כריכה אחורית', spine: 'חיתוך שדרה', spread: 'חיתוך הפריסה כולה (לפני הפיצול)', pages: 'חיתוך עמודי פנים (חל על כל העמודים)' }[cropTarget.kind]}
           onApply={applyCrop}
           onCancel={() => setCropTarget(null)}
         />

@@ -122,7 +122,7 @@ function MarksNote() {
   )
 }
 
-function SpreadControls({ settings, update, assets, onUploadSpread, hasSpread, busy }) {
+function SpreadControls({ settings, update, assets, onUploadSpread, onEditCrop, hasSpread, busy }) {
   const three = settings.spreadParts === 3
   const pct = (v) => Math.round(v * 100)
   return (
@@ -134,6 +134,7 @@ function SpreadControls({ settings, update, assets, onUploadSpread, hasSpread, b
         busy={busy}
         thumb={hasSpread ? assets.front : null}
       />
+      <CropButton show={hasSpread} onClick={() => onEditCrop('spread')} />
       <Field label="מבנה הפריסה">
         <Pills
           options={[
@@ -301,6 +302,7 @@ export default function ControlPanel({ settings, update, assets, rawAssets = {},
               update={update}
               assets={assets}
               onUploadSpread={onUploadSpread}
+              onEditCrop={onEditCrop}
               hasSpread={hasSpread}
               busy={busy}
             />
