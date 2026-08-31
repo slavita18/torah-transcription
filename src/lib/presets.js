@@ -78,7 +78,7 @@ export const DEFAULT_SETTINGS = {
   shadow: true,
   floatY: 0,
   // ספר פתוח
-  openAngle: 92, // מעלות פתיחה
+  openAngle: 125, // מעלות פתיחה (פתיחה טבעית של ספר על משטח)
   openPose: 'curved', // flat | curved | standing | turning
   turnAngle: 55, // זווית הרמת הדף במצב turning (מעלות)
   startLeft: false, // הזזת כל הרצף עמוד אחד (להתחיל בעמוד שמאלי)

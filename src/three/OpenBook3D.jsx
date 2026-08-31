@@ -146,13 +146,14 @@ export default function OpenBook3D({ settings, pages, spreadIndex, setSpreadInde
   const W = settings.width * SCALE
   const H = settings.height * SCALE
   const T = computeThicknessCm(settings) * SCALE
-  const board = (settings.coverType === 'hard' ? 0.28 : 0.07) * SCALE
-  const overhang = (settings.coverType === 'hard' ? 0.4 : 0.05) * SCALE
+  // כריכה בולטת: קשה = עבה עם overhang ניכר; רכה = דקה וצמודה
+  const board = (settings.coverType === 'hard' ? 0.55 : 0.16) * SCALE
+  const overhang = (settings.coverType === 'hard' ? 0.8 : 0.14) * SCALE
   const tilt = ((180 - settings.openAngle) / 2) * (Math.PI / 180)
   const stackT = Math.max(0.02, T / 2 - board)
 
   const pose = settings.openPose || 'curved'
-  const curveAmp = pose === 'flat' ? 0 : W * 0.05 // עקמומיות עדינה
+  const curveAmp = pose === 'flat' ? 0 : W * 0.03 // עקמומיות עדינה
   const offset = settings.startLeft ? 1 : 0
 
   const g = (i) => pages[i] || null
@@ -213,6 +214,12 @@ export default function OpenBook3D({ settings, pages, spreadIndex, setSpreadInde
       <group position={[0, settings.floatY + stackT + board, 0]}>
         <SideBlock sign={1} {...common} />
         <SideBlock sign={-1} {...common} />
+
+        {/* שדרה בגב — ממלאת את המפגש בין הדפים ומחברת את הכריכות */}
+        <mesh position={[0, -stackT * 0.5, 0]} castShadow receiveShadow>
+          <boxGeometry args={[board * 2.2, stackT + board * 1.4, H + overhang * 1.6]} />
+          <meshPhysicalMaterial color={settings.coverColor} roughness={0.62} clearcoat={settings.finish === 'glossy' ? 0.6 : 0.12} />
+        </mesh>
 
         <Page url={rightUrl} sign={1} W={W} H={H} tilt={tilt} amp={curveAmp} color={settings.pageColor} />
 
