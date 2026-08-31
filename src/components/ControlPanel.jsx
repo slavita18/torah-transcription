@@ -150,12 +150,29 @@ function SpreadControls({ settings, update, assets, onUploadSpread, hasSpread, b
         </Field>
       ) : (
         <>
-          <Field label="חיתוך ראשון (שמאל)">
-            <Slider value={pct(settings.spreadCutA)} min={10} max={70} suffix="%" onChange={(v) => update({ spreadCutA: v / 100 })} />
-          </Field>
-          <Field label="חיתוך שני (ימין)">
-            <Slider value={pct(settings.spreadCutB)} min={30} max={90} suffix="%" onChange={(v) => update({ spreadCutB: v / 100 })} />
-          </Field>
+          <label className="flex items-center gap-2 text-xs font-medium text-navy-700">
+            <input
+              type="checkbox"
+              checked={settings.spineAuto !== false}
+              onChange={(e) => update({ spineAuto: e.target.checked })}
+              className="h-4 w-4 accent-navy-700"
+            />
+            שדרה אוטומטית לפי עובי הספר
+          </label>
+          {settings.spineAuto !== false ? (
+            <p className="text-[11px] leading-snug text-navy-400">
+              רוחב השדרה נקבע לפי גודל הספר והעובי (מספר עמודים) — החיתוך נופל בדיוק במקום שהשדרה מתחילה. לכיוון עדין: כבה והזז ידנית.
+            </p>
+          ) : (
+            <>
+              <Field label="חיתוך ראשון (שמאל)">
+                <Slider value={pct(settings.spreadCutA)} min={10} max={70} suffix="%" onChange={(v) => update({ spreadCutA: v / 100 })} />
+              </Field>
+              <Field label="חיתוך שני (ימין)">
+                <Slider value={pct(settings.spreadCutB)} min={30} max={90} suffix="%" onChange={(v) => update({ spreadCutB: v / 100 })} />
+              </Field>
+            </>
+          )}
         </>
       )}
       <label className="flex items-center gap-2 text-xs font-medium text-navy-700">

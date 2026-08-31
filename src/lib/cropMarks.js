@@ -88,20 +88,60 @@ function detectTrimBox(data, aw, ah) {
     hRight[y] = r
   }
 
+  // סימן חיתוך הוא *קו דק* (מקבץ צר של פיקסלים), לא "רמה" רחבה. בכריכה
+  // מלאת-הדפס (full bleed) ההדפס ממלא את השוליים ויוצר רמה רחבה — לכן
+  // מחפשים מקבצים צרים בלבד ולוקחים את הקצה הפנימי של המקבץ החיצוני משני הצדדים.
+  const maxMarkW = Math.max(2, Math.round(0.012 * Math.min(aw, ah))) // רוחב מרבי של קו-סימן
+  const gapTol = 2 // סובלנות רווח בין פיקסלים במקבץ
+
+  // מקבצי עמודות/שורות שעומדים בתנאי (קו נוכח בשתי הרצועות הנגדיות)
+  const clusters = (n, ok) => {
+    const runs = []
+    let s = -1
+    let gap = 0
+    for (let i = 0; i < n; i++) {
+      if (ok(i)) {
+        if (s < 0) s = i
+        gap = 0
+      } else if (s >= 0) {
+        if (++gap > gapTol) {
+          runs.push({ start: s, end: i - gap })
+          s = -1
+        }
+      }
+    }
+    if (s >= 0) runs.push({ start: s, end: n - 1 })
+    return runs
+  }
+
+  const vRuns = clusters(aw, (x) => vTop[x] >= minLen && vBot[x] >= minLen)
+  const hRuns = clusters(ah, (y) => hLeft[y] >= minLen && hRight[y] >= minLen)
+  const thinV = vRuns.filter((r) => r.end - r.start + 1 <= maxMarkW)
+  const thinH = hRuns.filter((r) => r.end - r.start + 1 <= maxMarkW)
+
   let x0 = -1
   let x1 = -1
-  for (let x = 0; x < aw; x++) {
-    if (vTop[x] >= minLen && vBot[x] >= minLen) {
-      if (x0 < 0) x0 = x
-      x1 = x
-    }
-  }
   let y0 = -1
   let y1 = -1
-  for (let y = 0; y < ah; y++) {
-    if (hLeft[y] >= minLen && hRight[y] >= minLen) {
-      if (y0 < 0) y0 = y
-      y1 = y
+  if (thinV.length >= 2 && thinH.length >= 2) {
+    // קצה פנימי של המקבץ החיצוני מכל צד (הקו של קו-החיתוך)
+    x0 = thinV[0].end
+    x1 = thinV[thinV.length - 1].start
+    y0 = thinH[0].end
+    y1 = thinH[thinH.length - 1].start
+  } else {
+    // גיבוי: השיטה הישנה (קצה חיצוני-פנימי מכלל העמודות/שורות המתאימות)
+    for (let x = 0; x < aw; x++) {
+      if (vTop[x] >= minLen && vBot[x] >= minLen) {
+        if (x0 < 0) x0 = x
+        x1 = x
+      }
+    }
+    for (let y = 0; y < ah; y++) {
+      if (hLeft[y] >= minLen && hRight[y] >= minLen) {
+        if (y0 < 0) y0 = y
+        y1 = y
+      }
     }
   }
 

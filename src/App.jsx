@@ -6,6 +6,7 @@ import { DEFAULT_SETTINGS } from './lib/presets'
 import { fileToImage, pdfFirstPage, pdfToImages } from './lib/pdf'
 import { autoCropImage, detectTrimFraction, cropToFraction } from './lib/cropMarks'
 import { splitCoverSpread } from './lib/imageSplit'
+import { computeThicknessCm } from './lib/dimensions'
 
 export default function App() {
   const [settings, setSettings] = useState(DEFAULT_SETTINGS)
@@ -100,14 +101,25 @@ export default function App() {
     }
   }
 
-  // פיצול חי של פריסת הכריכה לפי נקודות החיתוך
+  // פיצול חי של פריסת הכריכה לפי נקודות החיתוך.
+  // במצב "שדרה אוטומטית" (spineAuto) רוחב השדרה נגזר מעובי הספר בפועל, כך
+  // שהחיתוך נופל בדיוק במקום שבו השדרה אמורה להתחיל — לא בשליש שרירותי.
   useEffect(() => {
     if (settings.coverInput !== 'spread' || !assets.spreadRaw) return
     let cancelled = false
+    let cutA = settings.spreadCutA
+    let cutB = settings.spreadCutB
+    if (settings.spreadParts === 3 && settings.spineAuto) {
+      const coverW = Math.max(1, settings.width)
+      const spineW = Math.max(0.2, computeThicknessCm(settings))
+      const total = 2 * coverW + spineW
+      cutA = coverW / total
+      cutB = (coverW + spineW) / total
+    }
     splitCoverSpread(assets.spreadRaw, {
       parts: settings.spreadParts,
-      cutA: settings.spreadCutA,
-      cutB: settings.spreadCutB,
+      cutA,
+      cutB,
       swap: settings.spreadSwap,
     })
       .then(({ front, back, spine }) => {
@@ -117,7 +129,8 @@ export default function App() {
     return () => {
       cancelled = true
     }
-  }, [assets.spreadRaw, settings.coverInput, settings.spreadParts, settings.spreadCutA, settings.spreadCutB, settings.spreadSwap])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [assets.spreadRaw, settings.coverInput, settings.spreadParts, settings.spreadCutA, settings.spreadCutB, settings.spreadSwap, settings.spineAuto, settings.width, settings.pageCount, settings.thicknessScale, settings.coverType])
 
   const onUploadBg = async (file) => {
     setBusy(true)
@@ -276,7 +289,7 @@ export default function App() {
           </div>
           <div>
             <h1 className="text-lg font-bold leading-tight text-navy-900">
-              מחולל הדמיות ספרים <span className="align-middle text-[10px] font-bold text-emerald-600">v19</span>
+              מחולל הדמיות ספרים <span className="align-middle text-[10px] font-bold text-emerald-600">v20</span>
             </h1>
             <p className="text-xs text-navy-500">הדמיות תלת-ממד ופרוספקטים לספרים עבריים · RTL</p>
           </div>

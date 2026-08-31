@@ -158,12 +158,26 @@ export default function Prospectus({ captures, pages = [], cover = null }) {
     setEls((e) => {
       const i = e.findIndex((x) => x.id === id)
       if (i < 0) return e
-      const j = dir > 0 ? Math.min(e.length - 1, i + 1) : Math.max(0, i - 1)
+      // dir: +1 קדימה (צעד) | -1 אחורה (צעד) | +2 לחזית לגמרי | -2 לרקע לגמרי
       const cp = [...e]
       const [it] = cp.splice(i, 1)
+      let j
+      if (dir === 2) j = cp.length
+      else if (dir === -2) j = 0
+      else j = dir > 0 ? Math.min(cp.length, i + 1) : Math.max(0, i - 1)
       cp.splice(j, 0, it)
       return cp
     })
+  const duplicate = (id) =>
+    setEls((e) => {
+      const el = e.find((x) => x.id === id)
+      if (!el) return e
+      const copy = { ...el, id: uid(), xPct: (el.xPct || 0) + 3, yPct: (el.yPct || 0) + 3 }
+      setTimeout(() => setSel(copy.id), 0)
+      return [...e, copy]
+    })
+  const nudgeSize = (id, delta) =>
+    setEls((e) => e.map((el) => (el.id === id ? { ...el, wPct: Math.max(4, Math.min(98, (el.wPct || 20) + delta)) } : el)))
 
   // גרירה ושינוי גודל
   const dragRef = useRef(null)
@@ -297,7 +311,14 @@ export default function Prospectus({ captures, pages = [], cover = null }) {
       <div ref={wrapRef} className="relative flex flex-1 items-center justify-center overflow-hidden bg-cream-100 p-4">
         {/* פאנל מאפיינים לאלמנט נבחר */}
         {selEl && (
-          <ElementPanel el={selEl} update={(p) => update1(selEl.id, p)} remove={() => remove1(selEl.id)} move={(d) => move(selEl.id, d)} />
+          <ElementPanel
+            el={selEl}
+            update={(p) => update1(selEl.id, p)}
+            remove={() => remove1(selEl.id)}
+            move={(d) => move(selEl.id, d)}
+            duplicate={() => duplicate(selEl.id)}
+            nudgeSize={(d) => nudgeSize(selEl.id, d)}
+          />
         )}
 
         <div style={{ transform: `scale(${fit})`, transformOrigin: 'center' }}>
@@ -427,7 +448,7 @@ function ElementView({ el, selected, onDown, onText }) {
   )
 }
 
-function ElementPanel({ el, update, remove, move }) {
+function ElementPanel({ el, update, remove, move, duplicate, nudgeSize }) {
   return (
     <div className="absolute right-4 top-4 z-20 w-56 rounded-2xl bg-white/95 p-3 text-xs shadow-xl ring-1 ring-cream-200 backdrop-blur">
       <div className="mb-2 font-bold text-navy-900">{el.type === 'text' ? 'טקסט' : 'הדמיה'}</div>
@@ -481,16 +502,35 @@ function ElementPanel({ el, update, remove, move }) {
           ))}
         </div>
       </div>
-      <label className="mb-2 block">גודל
-        <input type="range" min="6" max="95" value={Math.round(el.wPct)} onChange={(e) => update({ wPct: +e.target.value })} className="w-full accent-navy-700" />
-      </label>
+      <div className="mb-2">
+        <div className="mb-1 flex items-center justify-between">
+          <span>גודל</span>
+          <div className="flex items-center gap-1">
+            <button onClick={() => nudgeSize(-3)} className="h-5 w-5 rounded bg-cream-100 font-bold leading-none hover:bg-cream-200" title="הקטן">−</button>
+            <span className="w-8 text-center tabular-nums text-navy-500">{Math.round(el.wPct)}%</span>
+            <button onClick={() => nudgeSize(3)} className="h-5 w-5 rounded bg-cream-100 font-bold leading-none hover:bg-cream-200" title="הגדל">+</button>
+          </div>
+        </div>
+        <input type="range" min="4" max="98" value={Math.round(el.wPct)} onChange={(e) => update({ wPct: +e.target.value })} className="w-full accent-navy-700" />
+      </div>
       <label className="mb-2 block">סיבוב
-        <input type="range" min="-30" max="30" value={el.rot || 0} onChange={(e) => update({ rot: +e.target.value })} className="w-full accent-navy-700" />
+        <input type="range" min="-45" max="45" value={el.rot || 0} onChange={(e) => update({ rot: +e.target.value })} className="w-full accent-navy-700" />
       </label>
+
+      {/* סדר שכבות — מה עולה על מה */}
+      <div className="mb-2">
+        <span className="mb-1 block text-[11px] text-navy-500">סדר שכבות (מה מכסה את מה)</span>
+        <div className="grid grid-cols-2 gap-1">
+          <button onClick={() => move(2)} className="rounded bg-cream-100 py-1 hover:bg-navy-800 hover:text-white" title="הבא לחזית לגמרי">⬆ לחזית</button>
+          <button onClick={() => move(-2)} className="rounded bg-cream-100 py-1 hover:bg-navy-800 hover:text-white" title="שלח לרקע לגמרי">⬇ לרקע</button>
+          <button onClick={() => move(1)} className="rounded bg-cream-100 py-1 hover:bg-cream-200" title="צעד קדימה">▲ צעד</button>
+          <button onClick={() => move(-1)} className="rounded bg-cream-100 py-1 hover:bg-cream-200" title="צעד אחורה">▼ צעד</button>
+        </div>
+      </div>
+
       <div className="flex items-center gap-1.5">
-        <button onClick={() => move(1)} className="flex-1 rounded bg-cream-100 py-1 hover:bg-cream-200">קדימה</button>
-        <button onClick={() => move(-1)} className="flex-1 rounded bg-cream-100 py-1 hover:bg-cream-200">אחורה</button>
-        <button onClick={remove} className="rounded bg-red-50 px-2 py-1 font-semibold text-red-600 hover:bg-red-100">מחק</button>
+        <button onClick={duplicate} className="flex-1 rounded bg-cream-100 py-1 hover:bg-cream-200" title="שכפל">⧉ שכפל</button>
+        <button onClick={remove} className="rounded bg-red-50 px-3 py-1 font-semibold text-red-600 hover:bg-red-100">מחק</button>
       </div>
     </div>
   )

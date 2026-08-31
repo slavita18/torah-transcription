@@ -88,8 +88,9 @@ export const DEFAULT_SETTINGS = {
   // קלט כריכה
   coverInput: 'separate', // separate = קבצים נפרדים | spread = פריסה אחת
   spreadParts: 3, // 2 = קדמי+אחורי | 3 = קדמי+שדרה+אחורי
-  spreadCutA: 0.33, // חיתוך ראשון (יחס)
-  spreadCutB: 0.66, // חיתוך שני (יחס)
+  spineAuto: true, // רוחב השדרה נגזר אוטומטית מעובי הספר (מקום השדרה הנכון)
+  spreadCutA: 0.4, // חיתוך ראשון (יחס) — כשידני
+  spreadCutB: 0.6, // חיתוך שני (יחס) — כשידני
   spreadSwap: false, // החלפת קדמי/אחורי
   // רקע מותאם (תמונה)
   bgImage: null,
