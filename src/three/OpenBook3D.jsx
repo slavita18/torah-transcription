@@ -215,10 +215,10 @@ export default function OpenBook3D({ settings, pages, spreadIndex, setSpreadInde
         <SideBlock sign={1} {...common} />
         <SideBlock sign={-1} {...common} />
 
-        {/* שדרה בגב — ממלאת את המפגש בין הדפים ומחברת את הכריכות */}
-        <mesh position={[0, -stackT * 0.5, 0]} castShadow receiveShadow>
-          <boxGeometry args={[board * 2.2, stackT + board * 1.4, H + overhang * 1.6]} />
-          <meshPhysicalMaterial color={settings.coverColor} roughness={0.62} clearcoat={settings.finish === 'glossy' ? 0.6 : 0.12} />
+        {/* גב/שדרה — צל-גב עדין הממלא את קו האמצע (לא בולט) */}
+        <mesh position={[0, -stackT * 0.35, 0]}>
+          <boxGeometry args={[board * 0.9, stackT + board, H + overhang * 1.2]} />
+          <meshStandardMaterial color={new THREE.Color(settings.coverColor).multiplyScalar(0.55)} roughness={0.85} />
         </mesh>
 
         <Page url={rightUrl} sign={1} W={W} H={H} tilt={tilt} amp={curveAmp} color={settings.pageColor} />
