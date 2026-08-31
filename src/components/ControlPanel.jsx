@@ -202,7 +202,19 @@ function SpreadControls({ settings, update, assets, onUploadSpread, hasSpread, b
   )
 }
 
-export default function ControlPanel({ settings, update, assets, marks = {}, hasSpread, onUploadCover, onUploadBack, onUploadSpine, onUploadSpread, onUploadInterior, onUploadBg, busy }) {
+function CropButton({ show, onClick }) {
+  if (!show) return null
+  return (
+    <button
+      onClick={onClick}
+      className="mt-1 w-full rounded-lg border border-navy-200 bg-navy-50 px-3 py-1.5 text-xs font-semibold text-navy-700 hover:bg-navy-100"
+    >
+      ✂️ כוונן חיתוך ידני
+    </button>
+  )
+}
+
+export default function ControlPanel({ settings, update, assets, rawAssets = {}, marks = {}, hasSpread, onUploadCover, onUploadBack, onUploadSpine, onUploadSpread, onUploadInterior, onUploadBg, onEditCrop, busy }) {
   const isClosed = settings.mode === 'closed'
   const separate = settings.coverInput !== 'spread'
 
@@ -262,6 +274,7 @@ export default function ControlPanel({ settings, update, assets, marks = {}, has
                 thumb={assets.front}
               />
               {marks.front && <MarksNote />}
+              <CropButton show={!!rawAssets.frontRaw} onClick={() => onEditCrop('front')} />
               <Uploader
                 label="שדרה (אופציונלי)"
                 hint="תמונת השדרה — תוצג בצד ימין"
@@ -270,6 +283,7 @@ export default function ControlPanel({ settings, update, assets, marks = {}, has
                 thumb={assets.spine}
               />
               {marks.spine && <MarksNote />}
+              <CropButton show={!!rawAssets.spineRaw} onClick={() => onEditCrop('spine')} />
               <Uploader
                 label="כריכה אחורית (אופציונלי)"
                 hint="להדמיית הצד האחורי"
@@ -278,6 +292,7 @@ export default function ControlPanel({ settings, update, assets, marks = {}, has
                 thumb={assets.back}
               />
               {marks.back && <MarksNote />}
+              <CropButton show={!!rawAssets.backRaw} onClick={() => onEditCrop('back')} />
               <CropToggle settings={settings} update={update} />
             </>
           ) : (
@@ -307,6 +322,7 @@ export default function ControlPanel({ settings, update, assets, marks = {}, has
             </div>
           )}
           {marks.pages && <MarksNote />}
+          <CropButton show={rawAssets.pagesRaw?.length > 0} onClick={() => onEditCrop('pages')} />
           <CropToggle settings={settings} update={update} />
         </Section>
       )}

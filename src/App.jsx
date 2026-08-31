@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import Stage from './three/Stage'
 import ControlPanel from './components/ControlPanel'
 import Prospectus from './components/Prospectus'
+import CropEditor from './components/CropEditor'
 import { DEFAULT_SETTINGS } from './lib/presets'
 import { fileToImage, pdfFirstPage, pdfToImages } from './lib/pdf'
 import { autoCropImage, detectTrimFraction, cropToFraction } from './lib/cropMarks'
@@ -27,7 +28,54 @@ export default function App() {
   const [recording, setRecording] = useState(false)
   const [captures, setCaptures] = useState([]) // הדמיות שצולמו לפרוספקט
   const [paneFocus, setPaneFocus] = useState('split') // split | studio | prospectus
+  const [cropTarget, setCropTarget] = useState(null) // { kind, src, initial }
   const glRef = useRef(null)
+
+  // פתיחת עורך חיתוך ידני לנכס — מזהה קו-חיתוך אוטומטי כנקודת פתיחה
+  const openCrop = async (kind) => {
+    const rawByKind = {
+      front: assets.frontRaw,
+      back: assets.backRaw,
+      spine: assets.spineRaw,
+      pages: assets.pagesRaw?.[0],
+    }
+    const src = rawByKind[kind]
+    if (!src) return
+    setStatus('מזהה קו חיתוך…')
+    const auto = await detectTrimFraction(src)
+    setStatus('')
+    setCropTarget({ kind, src, initial: auto || { x0: 0.05, y0: 0.05, x1: 0.95, y1: 0.95 } })
+  }
+
+  // החלת החיתוך הידני. לעמודי פנים — מחיל את אותה תיבה על כל העמודים.
+  const applyCrop = async (box) => {
+    const { kind } = cropTarget
+    setCropTarget(null)
+    setBusy(true)
+    setStatus('חותך…')
+    try {
+      if (kind === 'pages') {
+        const out = []
+        for (let i = 0; i < assets.pagesRaw.length; i++) {
+          setStatus(`חותך עמוד ${i + 1}/${assets.pagesRaw.length}…`)
+          out.push(await cropToFraction(assets.pagesRaw[i], box))
+        }
+        setAssets((a) => ({ ...a, pagesCropped: out, pagesMarks: true }))
+      } else {
+        const rawKey = `${kind}Raw`
+        const cropped = await cropToFraction(assets[rawKey], box)
+        setAssets((a) => ({ ...a, [`${kind}Cropped`]: cropped, [`${kind}Marks`]: true }))
+      }
+      update({ autoCrop: true })
+      setStatus('✓ נחתך')
+    } catch (e) {
+      console.error(e)
+      setStatus('שגיאה בחיתוך')
+    } finally {
+      setBusy(false)
+      setTimeout(() => setStatus(''), 1400)
+    }
+  }
 
   const update = useCallback((patch) => setSettings((s) => ({ ...s, ...patch })), [])
 
@@ -289,7 +337,7 @@ export default function App() {
           </div>
           <div>
             <h1 className="text-lg font-bold leading-tight text-navy-900">
-              מחולל הדמיות ספרים <span className="align-middle text-[10px] font-bold text-emerald-600">v20</span>
+              מחולל הדמיות ספרים <span className="align-middle text-[10px] font-bold text-emerald-600">v21</span>
             </h1>
             <p className="text-xs text-navy-500">הדמיות תלת-ממד ופרוספקטים לספרים עבריים · RTL</p>
           </div>
@@ -352,6 +400,8 @@ export default function App() {
             onUploadSpread={onUploadSpread}
             onUploadInterior={onUploadInterior}
             onUploadBg={onUploadBg}
+            onEditCrop={openCrop}
+            rawAssets={assets}
             busy={busy}
           />
         </aside>
@@ -418,6 +468,16 @@ export default function App() {
           <Prospectus captures={captures} pages={view.pages} cover={view.front} />
         </section>
       </div>
+
+      {cropTarget && (
+        <CropEditor
+          src={cropTarget.src}
+          initial={cropTarget.initial}
+          title={{ front: 'חיתוך כריכה קדמית', back: 'חיתוך כריכה אחורית', spine: 'חיתוך שדרה', pages: 'חיתוך עמודי פנים (חל על כל העמודים)' }[cropTarget.kind]}
+          onApply={applyCrop}
+          onCancel={() => setCropTarget(null)}
+        />
+      )}
     </div>
   )
 }
