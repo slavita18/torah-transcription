@@ -40,6 +40,21 @@ const BG_STYLES = {
   },
 }
 
+// גופנים עבריים
+const FONTS = [
+  { label: 'פרנק-רוהל', v: "'Frank Ruhl Libre', serif" },
+  { label: 'דוד', v: "'David Libre', serif" },
+  { label: 'נוטו סריף', v: "'Noto Serif Hebrew', serif" },
+  { label: 'כתב רש"י', v: "'Noto Rashi Hebrew', serif" },
+  { label: 'סואץ (כותרות)', v: "'Suez One', serif" },
+  { label: 'סקולר (כותרות)', v: "'Secular One', sans-serif" },
+  { label: 'בלפייר', v: "'Bellefair', serif" },
+  { label: 'מרים', v: "'Miriam Libre', sans-serif" },
+  { label: 'הבו', v: "'Heebo', sans-serif" },
+  { label: 'אסיסטנט', v: "'Assistant', sans-serif" },
+  { label: 'רוביק', v: "'Rubik', sans-serif" },
+]
+
 let idc = 1
 const uid = () => `el_${idc++}`
 
@@ -111,20 +126,20 @@ export default function Prospectus({ captures, pages = [], cover = null }) {
       { id: uid(), type: 'text', text: 'שם הספר', xPct: 10, yPct: 4, wPct: 80, rot: 0, fontSize: 56, weight: 700, family: "'Frank Ruhl Libre', serif", color: ink, align: 'center' },
       { id: uid(), type: 'text', text: 'על התורה והמועדים', xPct: 15, yPct: 12.5, wPct: 70, rot: 0, fontSize: 23, weight: 500, family: "'Frank Ruhl Libre', serif", color: ink, align: 'center' },
       { id: uid(), type: 'rule', xPct: 35, yPct: 17.5, wPct: 30, rot: 0, color: gold },
-      { id: uid(), type: 'text', panel: 'parchment', text: 'כאן הטקסט שלך על תוכן הספר — תיאור, מעלות הספר, הסכמות ועוד. לחיצה כפולה לעריכה.', xPct: 12, yPct: 47, wPct: 76, rot: 0, fontSize: 18, weight: 400, family: "'Heebo', sans-serif", color: '#3a2a12', align: 'right' },
-      { id: uid(), type: 'text', panel: 'gold', text: 'עיצוב · עימוד · דפוס', xPct: 6, yPct: 92, wPct: 26, rot: 0, fontSize: 15, weight: 700, family: "'Frank Ruhl Libre', serif", color: '#3a2a12', align: 'center' },
+      { id: uid(), type: 'text', panel: 'parchment', text: 'כאן הטקסט שלך על תוכן הספר — תיאור, מעלות הספר, הסכמות ועוד. לחיצה כפולה לעריכה.', xPct: 14, yPct: 55, wPct: 72, rot: 0, fontSize: 17, weight: 400, family: "'Heebo', sans-serif", color: '#3a2a12', align: 'right' },
+      { id: uid(), type: 'text', panel: 'gold', text: 'עיצוב · עימוד · דפוס', xPct: 6, yPct: 93, wPct: 24, rot: 0, fontSize: 14, weight: 700, family: "'Frank Ruhl Libre', serif", color: '#3a2a12', align: 'center' },
     ])
     // ספר סגור (הירו) — צילום ראשון או הכריכה
     const hero = captures[0] || cover
-    if (hero) addImage(hero, 32, { xPct: 34, yPct: 19 })
+    if (hero) addImage(hero, 30, { xPct: 35, yPct: 20 })
     // כרטיסי-דף (עמודי פנים) משני צדי הספר
-    if (pages[0]) addImage(pages[0], 23, { xPct: 5, yPct: 21, rot: -4, card: true })
-    if (pages[1]) addImage(pages[1], 23, { xPct: 72, yPct: 21, rot: 4, card: true })
+    if (pages[0]) addImage(pages[0], 21, { xPct: 4, yPct: 22, rot: -4, card: true })
+    if (pages[1]) addImage(pages[1], 21, { xPct: 75, yPct: 22, rot: 4, card: true })
     // ספר פתוח (צילום שני) או עוד כרטיס-דף
-    if (captures[1]) addImage(captures[1], 60, { xPct: 20, yPct: 62 })
-    else if (pages[2]) addImage(pages[2], 26, { xPct: 37, yPct: 63, rot: -2, card: true })
+    if (captures[1]) addImage(captures[1], 54, { xPct: 23, yPct: 71 })
+    else if (pages[2]) addImage(pages[2], 24, { xPct: 38, yPct: 72, rot: -2, card: true })
     // לוגו
-    if (logoSrc) addImage(logoSrc, 18, { xPct: 72, yPct: 90.5 })
+    if (logoSrc) addImage(logoSrc, 16, { xPct: 74, yPct: 92 })
   }
 
   const addText = (preset) => {
@@ -348,11 +363,11 @@ function ElementView({ el, selected, onDown, onText }) {
       {el.type === 'image' ? (
         <div
           style={{
-            padding: el.card ? '3.5%' : 0,
-            background: el.card ? '#fdfbf5' : 'transparent',
+            padding: el.card ? '1.4%' : 0,
+            background: el.card ? '#fffdf8' : 'transparent',
             border: el.card ? '1px solid #e7dcc2' : 'none',
-            borderRadius: el.card ? 5 : 3,
-            boxShadow: el.shadow === false ? 'none' : '0 16px 26px -8px rgba(30,20,5,0.42)',
+            borderRadius: el.card ? 4 : 3,
+            boxShadow: el.shadow === false ? 'none' : '0 14px 22px -10px rgba(30,20,5,0.4)',
           }}
         >
           <img src={el.src} alt="" draggable={false} style={{ width: '100%', display: 'block', pointerEvents: 'none' }} />
@@ -418,6 +433,13 @@ function ElementPanel({ el, update, remove, move }) {
       <div className="mb-2 font-bold text-navy-900">{el.type === 'text' ? 'טקסט' : 'הדמיה'}</div>
       {el.type === 'text' && (
         <>
+          <label className="mb-2 block">גופן
+            <select value={el.family} onChange={(e) => update({ family: e.target.value })} className="mt-0.5 w-full rounded bg-cream-100 px-1 py-1" style={{ fontFamily: el.family }}>
+              {FONTS.map((f) => (
+                <option key={f.v} value={f.v} style={{ fontFamily: f.v }}>{f.label}</option>
+              ))}
+            </select>
+          </label>
           <label className="mb-2 block">גודל גופן
             <input type="range" min="12" max="90" value={el.fontSize} onChange={(e) => update({ fontSize: +e.target.value })} className="w-full accent-navy-700" />
           </label>
