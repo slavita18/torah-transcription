@@ -342,7 +342,7 @@ export default function App() {
           </div>
           <div>
             <h1 className="text-lg font-bold leading-tight text-navy-900">
-              מחולל הדמיות ספרים <span className="align-middle text-[10px] font-bold text-emerald-600">v22</span>
+              מחולל הדמיות ספרים <span className="align-middle text-[10px] font-bold text-emerald-600">v23</span>
             </h1>
             <p className="text-xs text-navy-500">הדמיות תלת-ממד ופרוספקטים לספרים עבריים · RTL</p>
           </div>

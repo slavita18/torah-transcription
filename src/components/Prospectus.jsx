@@ -117,29 +117,48 @@ export default function Prospectus({ captures, pages = [], cover = null }) {
   const addRule = () =>
     setEls((e) => [...e, { id: uid(), type: 'rule', xPct: 30, yPct: 50, wPct: 40, rot: 0, color: BG_STYLES[bg].frame }])
 
-  // תבנית קטלוג סלאוויטא — דף ספר בודד לאורך. רק מעלים פריטים והכל מסתדר.
+  // תבנית קטלוג סלאוויטא — דף ספר בודד לאורך, בפסים אופקיים נפרדים כך
+  // ששום אלמנט לא עולה על חברו. רק מעלים פריטים והכל מסתדר.
   const applyTemplate = () => {
     setSel(null)
     const ink = BG_STYLES[bg].ink
     const gold = BG_STYLES[bg].frame
+
+    // פס טקסט עליון + פאנל תיאור + כיתוב זהב תחתון (סינכרוני)
     setEls([
-      { id: uid(), type: 'text', text: 'שם הספר', xPct: 10, yPct: 4, wPct: 80, rot: 0, fontSize: 56, weight: 700, family: "'Frank Ruhl Libre', serif", color: ink, align: 'center' },
-      { id: uid(), type: 'text', text: 'על התורה והמועדים', xPct: 15, yPct: 12.5, wPct: 70, rot: 0, fontSize: 23, weight: 500, family: "'Frank Ruhl Libre', serif", color: ink, align: 'center' },
-      { id: uid(), type: 'rule', xPct: 35, yPct: 17.5, wPct: 30, rot: 0, color: gold },
-      { id: uid(), type: 'text', panel: 'parchment', text: 'כאן הטקסט שלך על תוכן הספר — תיאור, מעלות הספר, הסכמות ועוד. לחיצה כפולה לעריכה.', xPct: 14, yPct: 55, wPct: 72, rot: 0, fontSize: 17, weight: 400, family: "'Heebo', sans-serif", color: '#3a2a12', align: 'right' },
-      { id: uid(), type: 'text', panel: 'gold', text: 'עיצוב · עימוד · דפוס', xPct: 6, yPct: 93, wPct: 24, rot: 0, fontSize: 14, weight: 700, family: "'Frank Ruhl Libre', serif", color: '#3a2a12', align: 'center' },
+      { id: uid(), type: 'text', text: 'שם הספר', xPct: 10, yPct: 3.5, wPct: 80, rot: 0, fontSize: 54, weight: 700, family: "'Frank Ruhl Libre', serif", color: ink, align: 'center' },
+      { id: uid(), type: 'text', text: 'על התורה והמועדים', xPct: 15, yPct: 11, wPct: 70, rot: 0, fontSize: 22, weight: 500, family: "'Frank Ruhl Libre', serif", color: ink, align: 'center' },
+      { id: uid(), type: 'rule', xPct: 35, yPct: 15.5, wPct: 30, rot: 0, color: gold },
+      { id: uid(), type: 'text', panel: 'parchment', text: 'כאן הטקסט שלך על תוכן הספר — תיאור, מעלות הספר, הסכמות ועוד. לחיצה כפולה לעריכה.', xPct: 13, yPct: 45, wPct: 74, rot: 0, fontSize: 16, weight: 400, family: "'Heebo', sans-serif", color: '#3a2a12', align: 'right' },
+      { id: uid(), type: 'text', panel: 'gold', text: 'עיצוב · עימוד · דפוס', xPct: 38, yPct: 92, wPct: 24, rot: 0, fontSize: 14, weight: 700, family: "'Frank Ruhl Libre', serif", color: '#3a2a12', align: 'center' },
     ])
-    // ספר סגור (הירו) — צילום ראשון או הכריכה
+
+    // פס 1 — ספר סגור (הירו) ממורכז
     const hero = captures[0] || cover
-    if (hero) addImage(hero, 30, { xPct: 35, yPct: 20 })
-    // כרטיסי-דף (עמודי פנים) משני צדי הספר
-    if (pages[0]) addImage(pages[0], 21, { xPct: 4, yPct: 22, rot: -4, card: true })
-    if (pages[1]) addImage(pages[1], 21, { xPct: 75, yPct: 22, rot: 4, card: true })
-    // ספר פתוח (צילום שני) או עוד כרטיס-דף
-    if (captures[1]) addImage(captures[1], 54, { xPct: 23, yPct: 71 })
-    else if (pages[2]) addImage(pages[2], 24, { xPct: 38, yPct: 72, rot: -2, card: true })
-    // לוגו
-    if (logoSrc) addImage(logoSrc, 16, { xPct: 74, yPct: 92 })
+    if (hero) { const w = 24; addImage(hero, w, { xPct: (100 - w) / 2, yPct: 18 }) }
+
+    // פס 2 (מתחת לתיאור) — ספר פתוח ממורכז, או שורת כרטיסי-דף מרווחת
+    if (captures[1]) {
+      const w = 52
+      addImage(captures[1], w, { xPct: (100 - w) / 2, yPct: 61 })
+    } else {
+      const cards = [pages[0], pages[1], pages[2]].filter(Boolean).slice(0, 3)
+      const n = cards.length
+      if (n) {
+        const w = n >= 3 ? 22 : n === 2 ? 27 : 34
+        const gap = 5
+        const groupW = n * w + (n - 1) * gap
+        let x = (100 - groupW) / 2
+        cards.forEach((src, i) => {
+          const rot = n > 1 ? (i - (n - 1) / 2) * 3 : 0
+          addImage(src, w, { xPct: x, yPct: 63, card: true, rot })
+          x += w + gap
+        })
+      }
+    }
+
+    // לוגו — פינה תחתונה, בפס הכיתוב
+    if (logoSrc) addImage(logoSrc, 13, { xPct: 6, yPct: 90 })
   }
 
   const addText = (preset) => {
