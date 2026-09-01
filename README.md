@@ -1,16 +1,43 @@
-# React + Vite
+# 📚 מחולל הדמיות ספרים · 3D Hebrew Book Mockup Generator
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+כלי ווב להפקת הדמיות תלת-ממדיות מציאותיות של ספרים — מותאם לספרים עבריים הנפתחים מימין לשמאל.
 
-Currently, two official plugins are available:
+מעלים תמונה או PDF של הכריכה ומקבלים מיד הדמיה של **ספר סגור**, או מעלים PDF של פנים הספר ומקבלים הדמיה של **ספר פתוח** עם דפדוף — והכול ניתן לכוונון ולהורדה כתמונה.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## יכולות
 
-## React Compiler
+### ספר סגור
+- העלאת כריכה קדמית/אחורית (תמונה JPG/PNG או PDF — נלקח העמוד הראשון)
+- כריכה קשה או רכה (כולל overhang ריאליסטי לכריכה קשה)
+- בחירת עובי לפי מספר עמודים + כוונון עדין
+- גימור: מט / סאטן / מבריק (למינציה) / עור
+- צבעי כריכה, שדרה ודפים
+- גודלי ספר מוכנים (גמרא, חומש, סידור, A4/A5, כיס ועוד) או מידות מותאמות
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+### ספר פתוח
+- העלאת PDF של תוכן הספר — רינדור העמודים לדפדוף
+- ניווט בין גיליונות עם **אנימציית הפיכת דף** (מימין לשמאל)
+- בקרת זווית פתיחה
+- אותן אפשרויות כריכה, עובי, גודל וצבעים
 
-## Expanding the ESLint configuration
+### תצוגה וייצוא
+- רקעים מוכנים (גרדיאנט סטודיו, צבע אחיד, שקוף ל-PNG) + צבעים מותאמים
+- זוויות מצלמה מוכנות + סיבוב חופשי בעכבר + סיבוב אוטומטי
+- צל רך, תאורת סטודיו
+- הורדת ההדמיה כתמונת PNG באיכות גבוהה
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+## טכנולוגיה
+- **React + Vite**
+- **Three.js** + **@react-three/fiber** + **@react-three/drei** — רינדור התלת-ממד
+- **pdf.js** — רינדור עמודי PDF
+- **Tailwind CSS** — עיצוב הממשק (RTL)
+
+## הרצה מקומית
+```bash
+npm install
+npm run dev      # שרת פיתוח
+npm run build    # בנייה לפרודקשן
+npm run preview  # תצוגה מקדימה של ה-build
+```
+
+האפליקציה רצה במלואה בדפדפן — אין שרת, והקבצים שמעלים אינם נשלחים לשום מקום.
