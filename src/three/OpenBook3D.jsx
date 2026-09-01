@@ -31,25 +31,37 @@ function useHalfGeometry(W, H, sign, rise) {
 }
 
 /**
- * חומר לדף. עם תוכן: MeshStandard עם map + emissiveMap. ה-emissive מאיר
- * את ההדפס מעצמו (טקסט חד וברור גם בצל), וה-map מוסיף הצללת נפח עדינה —
- * כך העמק והעקמומיות נראים טבעיים בלי שהטקסט "יישטף".
+ * חומר לדף. עם תוכן: MeshBasicMaterial לא-מואר עם toneMapped=false — ההדפס
+ * מוצג *בדיוק* כמו המקור (שחור חד על לבן), בלי שתאורה/חשיפה ישטפו את פיקסלי
+ * הקצה של הטקסט. תחושת הנפח מגיעה מהגאומטריה המעוקלת ומצל-השדרה, לא מהצללה.
  */
 function usePageMaterial(tex, color, side = THREE.DoubleSide) {
   return useMemo(() => {
     if (tex) {
-      return new THREE.MeshStandardMaterial({
-        map: tex,
-        emissive: new THREE.Color(0xffffff),
-        emissiveMap: tex,
-        emissiveIntensity: 0.62,
-        roughness: 0.92,
-        metalness: 0,
-        side,
-      })
+      return new THREE.MeshBasicMaterial({ map: tex, side, toneMapped: false })
     }
     return new THREE.MeshStandardMaterial({ color, roughness: 0.9, side })
   }, [tex, color, side])
+}
+
+/** טקסטורת צל-שדרה: ליבה כהה דקה עם דעיכה רכה לצדדים (קו עדין, לא פס עבה) */
+function makeGutterTexture() {
+  const w = 128
+  const c = document.createElement('canvas')
+  c.width = w
+  c.height = 4
+  const ctx = c.getContext('2d')
+  const grad = ctx.createLinearGradient(0, 0, w, 0)
+  grad.addColorStop(0.0, 'rgba(26,18,10,0)')
+  grad.addColorStop(0.44, 'rgba(26,18,10,0.10)')
+  grad.addColorStop(0.5, 'rgba(26,18,10,0.6)')
+  grad.addColorStop(0.56, 'rgba(26,18,10,0.10)')
+  grad.addColorStop(1.0, 'rgba(26,18,10,0)')
+  ctx.fillStyle = grad
+  ctx.fillRect(0, 0, w, 4)
+  const tex = new THREE.CanvasTexture(c)
+  tex.colorSpace = THREE.SRGBColorSpace
+  return tex
 }
 
 /** חצי-דף סטטי, נשען בזווית פתיחה עדינה סביב ציר השדרה (x=0) */
@@ -157,6 +169,7 @@ export default function OpenBook3D({ settings, pages, spreadIndex, setSpreadInde
   const totalSpreads = Math.max(1, Math.ceil((pages.length + offset) / 2))
   const idx = Math.min(spreadIndex, totalSpreads - 1)
 
+  const gutterTex = useMemo(() => makeGutterTexture(), [])
   const [flip, setFlip] = useState(null)
   const lastReq = useRef(0)
 
@@ -205,10 +218,10 @@ export default function OpenBook3D({ settings, pages, spreadIndex, setSpreadInde
         <HalfPage url={rightUrl} sign={1} W={W} H={H} rise={rise} openTilt={openTilt} color={settings.pageColor} />
         <HalfPage url={leftUrl} sign={-1} W={W} H={H} rise={rise} openTilt={openTilt} color={settings.pageColor} />
 
-        {/* צל-שדרה רך: פס כהה שקוף לאורך קו האמצע — מדמה את עומק הכריכה בגוטר */}
+        {/* צל-שדרה רך ודק: ליבה כהה דקה עם דעיכה לצדדים — קו עדין לאורך המרכז */}
         <mesh position={[0, 0.006, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-          <planeGeometry args={[W * 0.08, H * 0.985]} />
-          <meshBasicMaterial color="#1a120a" transparent opacity={0.28} depthWrite={false} />
+          <planeGeometry args={[W * 0.13, H * 0.985]} />
+          <meshBasicMaterial map={gutterTex} transparent depthWrite={false} toneMapped={false} />
         </mesh>
 
         <FlippingLeaf
